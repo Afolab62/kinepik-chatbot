@@ -3,19 +3,22 @@
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Bot, Copy, Check } from "lucide-react";
+import { Bot, Copy, Check, Share2 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { Message } from "@/lib/client/chat-store";
 import { KinaseResultsGrid } from "../kinase/kinase-result-card";
 import type { KinaseCandidate } from "@/lib/types/kinepik";
+import type { NetworkData } from "@/lib/server/tools/get-kinase-network";
 
 interface ChatMessageProps {
   message: Message;
   index: number;
+  networkData?: NetworkData;
+  onViewNetwork?: () => void;
 }
 
-export function ChatMessage({ message, index }: ChatMessageProps) {
+export function ChatMessage({ message, index, networkData, onViewNetwork }: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
   const isUser = message.role === "user";
 
@@ -74,7 +77,19 @@ export function ChatMessage({ message, index }: ChatMessageProps) {
                 "prose-ul:my-1 prose-li:my-0",
               )}
             >
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  img: ({ src, alt }) => (
+                    <img
+                      src={src}
+                      alt={alt ?? ""}
+                      className="rounded-lg max-w-full my-2 border border-border"
+                      loading="lazy"
+                    />
+                  ),
+                }}
+              >
                 {cleanContent(message.content)}
               </ReactMarkdown>
             </div>
@@ -130,17 +145,36 @@ export function ChatMessage({ message, index }: ChatMessageProps) {
 
         {/* Copy button — assistant only */}
         {!isUser && (
-          <button
-            onClick={handleCopy}
-            className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
-            title="Copy message"
-          >
-            {copied ? (
-              <Check className="w-3 h-3 text-accent" />
-            ) : (
-              <Copy className="w-3 h-3" />
+          <div className="flex items-center gap-1">
+            {/* View Network button */}
+            {onViewNetwork && networkData && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+                onClick={onViewNetwork}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-accent/10 hover:bg-accent/20 border border-accent/30 text-accent hover:text-accent transition-colors"
+                title="Open interactive network visualisation"
+              >
+                <Share2 className="w-3 h-3" />
+                View Network
+                <span className="text-accent/60">
+                  {networkData.nodeCount}n · {networkData.edgeCount}e
+                </span>
+              </motion.button>
             )}
-          </button>
+            <button
+              onClick={handleCopy}
+              className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
+              title="Copy message"
+            >
+              {copied ? (
+                <Check className="w-3 h-3 text-accent" />
+              ) : (
+                <Copy className="w-3 h-3" />
+              )}
+            </button>
+          </div>
         )}
       </div>
     </motion.div>

@@ -3,6 +3,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { NetworkData } from "@/lib/server/tools/get-kinase-network";
 
 export interface Message {
   id: string;
@@ -24,6 +25,7 @@ export interface Conversation {
   id: string;
   title: string;
   messages: StoredMessage[];
+  lastNetworkData?: NetworkData;
   createdAt: number;
   updatedAt: number;
 }
@@ -36,6 +38,7 @@ interface ChatState {
   createConversation: () => string;
   setActiveConversation: (id: string) => void;
   updateConversation: (id: string, messages: StoredMessage[]) => void;
+  saveNetworkData: (id: string, data: NetworkData) => void;
   deleteConversation: (id: string) => void;
   toggleThinking: () => void;
   clearMessages: () => void;
@@ -85,6 +88,14 @@ export const useChatStore = create<ChatState>()(
                   updatedAt: Date.now(),
                 }
               : c,
+          ),
+        }));
+      },
+
+      saveNetworkData: (id, data) => {
+        set((state) => ({
+          conversations: state.conversations.map((c) =>
+            c.id === id ? { ...c, lastNetworkData: data } : c,
           ),
         }));
       },

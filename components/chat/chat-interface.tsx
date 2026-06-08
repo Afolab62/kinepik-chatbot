@@ -5,18 +5,36 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { ArrowUp, Loader2, AlertCircle } from "lucide-react";
+import { ArrowUp, Loader2, AlertCircle, PanelRight } from "lucide-react";
 import { useChatStore, type StoredMessage } from "@/lib/client/chat-store";
 import { ChatMessage } from "./chat-message";
 import { ChatSidebar } from "./chat-sidebar";
+import { NetworkPanel } from "@/components/network/network-panel";
 import { cn } from "@/lib/utils";
+import type { NetworkData } from "@/lib/server/tools/get-kinase-network";
 
 const EXAMPLE_PROMPTS = [
   "Why does mTOR activity decrease when MCF7 is treated with Rapamycin",
-  "What effect does Rapamycin have on mTOR",
+  "Visualise the EGFR signalling network",
   "What kinase families target tyrosine residues?",
-  "What are the top 10 most connected kinases?",
+  "Show me the PI3K/AKT/mTOR network",
 ];
+
+/** Extract all getKinaseNetwork results from a message's parts. */
+function extractNetworkDataFromParts(
+  parts: { type: string; [key: string]: unknown }[],
+): NetworkData | null {
+  for (const part of parts) {
+    if (
+      part.type === "tool-getKinaseNetwork" &&
+      (part as { state?: string }).state === "output-available"
+    ) {
+      const output = (part as { output?: { networkData?: NetworkData } }).output;
+      if (output?.networkData) return output.networkData;
+    }
+  }
+  return null;
+}
 
 function toStoredMessages(
   msgs: ReturnType<typeof useChat>["messages"],
@@ -50,6 +68,9 @@ export function ChatInterface() {
   const [input, setInput] = useState("");
   const [chatError, setChatError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [networkPanelOpen, setNetworkPanelOpen] = useState(false);
+  const [activeNetworkData, setActiveNetworkData] = useState<NetworkData | null>(null);
+  const lastNetworkIdRef = useRef<string | null>(null);
 
   const {
     conversations,
@@ -57,6 +78,7 @@ export function ChatInterface() {
     createConversation,
     setActiveConversation,
     updateConversation,
+    saveNetworkData,
     clearMessages: clearStoreMessages,
   } = useChatStore();
 
@@ -73,6 +95,31 @@ export function ChatInterface() {
 
   const isLoading = status === "submitted" || status === "streaming";
 
+  // Auto-open network panel whenever a new getKinaseNetwork result arrives
+  useEffect(() => {
+    // Scan in reverse to find the most recent network result
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg.role !== "assistant") continue;
+      const parts = (msg.parts ?? []) as { type: string; [key: string]: unknown }[];
+      const networkData = extractNetworkDataFromParts(parts);
+      if (networkData) {
+        // Use a stable key so we don't re-open on every render
+        const key = `${msg.id}`;
+        if (key !== lastNetworkIdRef.current) {
+          lastNetworkIdRef.current = key;
+          setActiveNetworkData(networkData);
+          setNetworkPanelOpen(true);
+          // Persist the network data so it survives conversation switches
+          if (activeConversationId) {
+            saveNetworkData(activeConversationId, networkData);
+          }
+        }
+        break;
+      }
+    }
+  }, [messages]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (!activeConversationId) createConversation();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -87,6 +134,13 @@ export function ChatInterface() {
       );
     } else {
       setMessages([]);
+    }
+    // Restore any network data persisted for this conversation
+    if (conv?.lastNetworkData) {
+      setActiveNetworkData(conv.lastNetworkData);
+      // Don't auto-open — let the user click "View Network" to reopen
+    } else {
+      setActiveNetworkData(null);
     }
     loadedConvRef.current = activeConversationId;
   }, [activeConversationId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -111,6 +165,9 @@ export function ChatInterface() {
   const handleNewChat = useCallback(() => {
     setMessages([]);
     setChatError(null);
+    setNetworkPanelOpen(false);
+    setActiveNetworkData(null);
+    lastNetworkIdRef.current = null;
     const id = createConversation();
     loadedConvRef.current = id;
   }, [createConversation, setMessages]);
@@ -119,6 +176,9 @@ export function ChatInterface() {
     (id: string) => {
       if (id === activeConversationId) return;
       setActiveConversation(id);
+      setNetworkPanelOpen(false);
+      setActiveNetworkData(null);
+      lastNetworkIdRef.current = null;
       loadedConvRef.current = null;
     },
     [activeConversationId, setActiveConversation],
@@ -128,6 +188,9 @@ export function ChatInterface() {
     setMessages([]);
     clearStoreMessages();
     setChatError(null);
+    setNetworkPanelOpen(false);
+    setActiveNetworkData(null);
+    lastNetworkIdRef.current = null;
   }, [setMessages, clearStoreMessages]);
 
   const handleSend = () => {
@@ -155,10 +218,18 @@ export function ChatInterface() {
         onToggle={() => setSidebarOpen((o) => !o)}
       />
 
+      {/* Cytoscape network side panel */}
+      <NetworkPanel
+        networkData={activeNetworkData}
+        isOpen={networkPanelOpen}
+        onClose={() => setNetworkPanelOpen(false)}
+      />
+
       <main
         className={cn(
           "flex flex-col flex-1 h-screen min-w-0 transition-all duration-300",
           sidebarOpen ? "ml-80" : "ml-16",
+          networkPanelOpen ? "mr-130" : "",
         )}
       >
         {/* Messages / Welcome */}
@@ -219,13 +290,22 @@ export function ChatInterface() {
                 className="max-w-3xl mx-auto w-full py-6 px-4 space-y-4"
               >
                 {messages.map((message, index) => {
-                  const textContent = message.parts
+                  const parts = (message.parts ?? []) as { type: string; [key: string]: unknown }[];
+                  const textContent = parts
                     .filter(
-                      (p): p is Extract<typeof p, { type: "text" }> =>
+                      (p): p is { type: "text"; text: string } =>
                         p.type === "text",
                     )
                     .map((p) => p.text)
                     .join("");
+                  // Prefer live tool-part data; fall back to stored network data on
+                  // the last assistant message (covers restored conversations).
+                  const isLastAssistant =
+                    message.role === "assistant" &&
+                    messages.slice(index + 1).every((m) => m.role !== "assistant");
+                  const msgNetworkData =
+                    extractNetworkDataFromParts(parts) ??
+                    (isLastAssistant ? activeNetworkData : null);
                   return (
                     <ChatMessage
                       key={message.id}
@@ -240,6 +320,15 @@ export function ChatInterface() {
                           message.role === "assistant",
                       }}
                       index={index}
+                      networkData={msgNetworkData ?? undefined}
+                      onViewNetwork={
+                        msgNetworkData
+                          ? () => {
+                              setActiveNetworkData(msgNetworkData);
+                              setNetworkPanelOpen(true);
+                            }
+                          : undefined
+                      }
                     />
                   );
                 })}
@@ -262,6 +351,31 @@ export function ChatInterface() {
           className="border-t border-border bg-background px-4 py-8 shrink-0"
         >
           <div className="max-w-4xl mx-auto w-full">
+            {/* Network toggle pill — appears when a network is available */}
+            <AnimatePresence>
+              {activeNetworkData && (
+                <motion.div
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 4 }}
+                  transition={{ duration: 0.15 }}
+                  className="flex justify-end mb-1.5"
+                >
+                  <button
+                    onClick={() => setNetworkPanelOpen((o) => !o)}
+                    className={cn(
+                      "flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] border transition-colors",
+                      networkPanelOpen
+                        ? "bg-accent/10 border-accent/30 text-accent hover:bg-accent/20"
+                        : "bg-transparent border-border text-muted-foreground hover:text-foreground hover:border-foreground/30",
+                    )}
+                  >
+                    <PanelRight className="w-3 h-3" />
+                    Network
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
             <AnimatePresence>
               {messages.length === 0 && (
                 <motion.div

@@ -13,21 +13,8 @@ export const metadata: Metadata = {
     "Interactive AI chatbot for KINEPIK kinase identification analysis, powered by Biochatter conversational AI framework",
   generator: "js.app",
   icons: {
-    icon: [
-      {
-        url: "/icon-light-32x32.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-      {
-        url: "/icon.svg",
-        type: "image/svg+xml",
-      },
-    ],
-    apple: "/apple-icon.png",
+    icon: "/kinepik-sidebar-logo.png",
+    apple: "/kinepik-sidebar-logo.png",
   },
 };
 

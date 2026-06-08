@@ -123,10 +123,13 @@
     @apply bg-background text-foreground;
   }
 
-  /* Minimal scrollbar */
+  /* Minimal scrollbar — no arrows, small pill thumb */
   ::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
+    width: 3px;
+    height: 3px;
+  }
+  ::-webkit-scrollbar-button {
+    display: none;
   }
   ::-webkit-scrollbar-track {
     background: transparent;
@@ -137,6 +140,11 @@
   }
   ::-webkit-scrollbar-thumb:hover {
     background: var(--muted-foreground);
+  }
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
   }
   * {
     scrollbar-width: thin;
