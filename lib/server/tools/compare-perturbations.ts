@@ -57,12 +57,14 @@ async function fetchKseaForPerturbation(
         if (typeof pertData !== "object" || pertData === null) continue;
         const n = typeof pertData.n === "number" ? pertData.n : 0;
         if (n === 0) continue;
-        const zScore = typeof pertData.WeightedZ_score === "number"
-          ? pertData.WeightedZ_score
-          : typeof pertData.z_score === "number"
-            ? pertData.z_score
-            : NaN;
-        const pValue = typeof pertData.p_value === "number" ? pertData.p_value : NaN;
+        const zScore =
+          typeof pertData.WeightedZ_score === "number"
+            ? pertData.WeightedZ_score
+            : typeof pertData.z_score === "number"
+              ? pertData.z_score
+              : NaN;
+        const pValue =
+          typeof pertData.p_value === "number" ? pertData.p_value : NaN;
         if (Number.isFinite(zScore)) {
           const absZ = Math.abs(zScore);
           const direction =

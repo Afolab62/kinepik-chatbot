@@ -96,19 +96,20 @@ KINEPIK is a full-stack AI application that combines:
 ```typescript
 // components/chat/chat-interface.tsx (simplified)
 const { handleSubmit, messages, isLoading } = useChat({
-  api: '/api/chat',               // endpoint
+  api: "/api/chat", // endpoint
   experimental_throttleWaitMs: 50, // WebSocket latency
   onResponse(response) {
     // Handle tool execution results
-    extractNetworkDataFromParts(messages[messages.length - 1].parts)
-  }
-})
+    extractNetworkDataFromParts(messages[messages.length - 1].parts);
+  },
+});
 
 // User types "Why does mTOR decrease with Rapamycin in MCF7?"
 // handleSubmit({ messages: [...previousMessages, userMessage] })
 ```
 
 The frontend collects:
+
 - **Message history** — all previous user and assistant turns
 - **Current message** — the user's new query
 - **Connection state** — maintains persistent chat session
@@ -134,36 +135,36 @@ Content-Type: application/json
 }
 ```
 
-**Key insight:** The client sends the *full message history* every request. The backend uses this for context but doesn't maintain server-side session memory. This allows stateless scaling but requires bandwidth for long conversations.
+**Key insight:** The client sends the _full message history_ every request. The backend uses this for context but doesn't maintain server-side session memory. This allows stateless scaling but requires bandwidth for long conversations.
 
 #### Step 3: Server-Side Processing (`/api/chat`)
 
 ```typescript
 // app/api/chat/route.ts (simplified pipeline)
 export async function POST(req: Request) {
-  const { messages } = await req.json()
+  const { messages } = await req.json();
 
   // Validation
-  const { valid, error } = validateApiKey()  // Check .env.local
-  if (!valid) return Response.json({ error }, { status: 500 })
+  const { valid, error } = validateApiKey(); // Check .env.local
+  if (!valid) return Response.json({ error }, { status: 500 });
 
   // Convert client message format → AI SDK message format
-  const modelMessages = await convertToModelMessages(messages)
+  const modelMessages = await convertToModelMessages(messages);
 
   // Stream LLM response with tools
   const result = streamText({
-    model: getBiochatterModel(),          // OpenAI or BioChatter server
-    system: SYSTEM_PROMPT + serverNote,   // Injected context
+    model: getBiochatterModel(), // OpenAI or BioChatter server
+    system: SYSTEM_PROMPT + serverNote, // Injected context
     messages: modelMessages,
-    tools: chatTools,                     // 5 kinase tools
-    stopWhen: stepCountIs(5),            // Max 5 tool calls per response
+    tools: chatTools, // 5 kinase tools
+    stopWhen: stepCountIs(5), // Max 5 tool calls per response
     onFinish({ totalUsage }) {
-      console.log(`[tokens] ${totalUsage}`) // Usage tracking
-    }
-  })
+      console.log(`[tokens] ${totalUsage}`); // Usage tracking
+    },
+  });
 
   // Return UIMessageStream → client receives as event stream
-  return result.toUIMessageStreamResponse()
+  return result.toUIMessageStreamResponse();
 }
 ```
 
@@ -186,13 +187,14 @@ event: 0
 data: {"type":"tool-call","id":"tool-456","toolName":"analyzeKinase",...}
 
 event: 0
-data: {"type":"tool-result","id":"tool-456",...} 
+data: {"type":"tool-result","id":"tool-456",...}
 
 event: 0
 data: {"type":"text-end","id":"msg-123"}
 ```
 
 The client's `useChat()` hook:
+
 - Buffers each delta and updates the UI in real-time
 - Executes tools when `tool-call` events arrive
 - Re-renders the message stream progressively
@@ -202,7 +204,7 @@ The client's `useChat()` hook:
 ```typescript
 // When the response finishes
 useChatStore.setState((state) => {
-  const activeId = state.activeConversationId
+  const activeId = state.activeConversationId;
   return {
     conversations: state.conversations.map((c) =>
       c.id === activeId
@@ -210,17 +212,18 @@ useChatStore.setState((state) => {
             ...c,
             messages: toStoredMessages(useChat.messages),
             lastNetworkData: extractNetworkDataFromParts(
-              useChat.messages[useChat.messages.length - 1].parts
+              useChat.messages[useChat.messages.length - 1].parts,
             ),
-            updatedAt: Date.now()
+            updatedAt: Date.now(),
           }
-        : c
-    )
-  }
-})
+        : c,
+    ),
+  };
+});
 ```
 
 The conversation is persisted to **localStorage** with:
+
 - Full message history
 - Network visualization data (if `getKinaseNetwork` was called)
 - Timestamp for recent conversation sorting
@@ -238,9 +241,9 @@ The **SYSTEM_PROMPT** ([lib/server/prompts.ts](lib/server/prompts.ts)) is the pr
 ##### 1. **Role Definition**
 
 ```
-You are KINEPIK Assistant, an AI system for kinase identification 
-and phosphoproteomics analysis, backed by the KINEPIK database 
-(kinepik.org) — an integrated data resource for cell signalling 
+You are KINEPIK Assistant, an AI system for kinase identification
+and phosphoproteomics analysis, backed by the KINEPIK database
+(kinepik.org) — an integrated data resource for cell signalling
 research developed at Queen Mary University of London.
 ```
 
@@ -251,6 +254,7 @@ research developed at Queen Mary University of London.
 The prompt explicitly teaches the model:
 
 - **What KINEPIK is** — a real database with specific contents
+
   ```
   - Kinase-phosphosite interaction networks
   - Experimental perturbation data across cell lines MCF7, NTERA2, HL60
@@ -258,6 +262,7 @@ The prompt explicitly teaches the model:
   ```
 
 - **UniProt ID mappings** — because the model must know which kinase is which
+
   ```
   Known UniProt IDs:
   EGFR=P00533, mTOR=P42345, AKT1=P31749, ...
@@ -272,9 +277,9 @@ The prompt explicitly teaches the model:
 The prompt teaches the model when and how to use each tool:
 
 ```
-Before running KSEA analysis for a specific drug, call listPerturbations 
-first to confirm the exact perturbation name exists in the database. 
-Drug names are case-sensitive and must match exactly (e.g. "AZD3759", 
+Before running KSEA analysis for a specific drug, call listPerturbations
+first to confirm the exact perturbation name exists in the database.
+Drug names are case-sensitive and must match exactly (e.g. "AZD3759",
 not "azd3759" or "AZD 3759").
 ```
 
@@ -285,10 +290,10 @@ not "azd3759" or "AZD 3759").
 The prompt prohibits certain patterns:
 
 ```
-Never say "the database returned", "the tool returned", "returned data", 
+Never say "the database returned", "the tool returned", "returned data",
 or "API result" — present findings as scientific observations
 
-Do not add a "Next Steps" or "Recommendations" section unless the user 
+Do not add a "Next Steps" or "Recommendations" section unless the user
 explicitly asks for it
 ```
 
@@ -305,7 +310,7 @@ z-score -1 to +1: no significant change
 z-score -1 to -2: moderately inhibited
 z-score < -2: strongly inhibited
 
-n = number of substrate phosphosites used in the enrichment calculation 
+n = number of substrate phosphosites used in the enrichment calculation
 (higher = more reliable)
 ```
 
@@ -314,12 +319,13 @@ n = number of substrate phosphosites used in the enrichment calculation
 ##### 6. **Fallback Behavior for Missing Data**
 
 ```
-If KSEA data is unavailable (n=0 substrates): 
-  state in one sentence it is not in the database, 
+If KSEA data is unavailable (n=0 substrates):
+  state in one sentence it is not in the database,
   then speculate briefly prefixed with "Based on known biology:"
 ```
 
 **Why:** Teaches the model to:
+
 - Be honest about missing data (transparency)
 - Still provide value by speculating from general knowledge (utility)
 - Use a clear prefix so users know which information is from the database vs. speculation
@@ -339,8 +345,8 @@ You have access to curated biomedical knowledge via BioChatter's RAG pipeline:
 - PhosphoELM: Phosphorylation site functional data
 
 ## RAG-Enhanced Analysis
-When answering questions about specific proteins or pathways, 
-synthesize information from the above databases. Always indicate 
+When answering questions about specific proteins or pathways,
+synthesize information from the above databases. Always indicate
 which knowledge source informed your response.
 ```
 
@@ -368,12 +374,14 @@ This is different from **prompting the model with data upfront**. Instead, the L
 #### 1. **`analyzeKinase`** — Query KINEPIK Database
 
 **When the AI decides to call it:**
+
 ```
 User: "Which kinases phosphorylate mTOR?"
 → AI decides: "I need analyzeKinase"
 ```
 
 **Parameters:**
+
 ```typescript
 {
   uniprotIds: string[],      // e.g., ["P42345"]  (mTOR)
@@ -387,15 +395,16 @@ User: "Which kinases phosphorylate mTOR?"
 ```typescript
 async function fetchKinaseInfo(uniprotIds: string[]) {
   const ids = uniprotIds.join(",")
-  const url = 
+  const url =
     `https://kinepik.org/api/0/kinases/specific?kinase_ids=${ids}&phosphosites=targets`
-  
+
   const res = await fetch(url, { signal, timeout: 10s })
   return res.json()  // Array of KinaseCandidate objects
 }
 ```
 
 **Example response:**
+
 ```json
 [
   {
@@ -418,12 +427,14 @@ async function fetchKinaseInfo(uniprotIds: string[]) {
 #### 2. **`analyzeMotif`** — Pattern Matching
 
 **When used:**
+
 ```
 User: "Does EGFR phosphorylate RRxS motifs?"
 → AI calls analyzeMotif to check
 ```
 
 **Parameters:**
+
 ```typescript
 {
   motif: string,      // "RRxS" — regular expression or literal
@@ -436,19 +447,19 @@ User: "Does EGFR phosphorylate RRxS motifs?"
 ```typescript
 const PHOSPHO_MOTIFS = {
   basophilic: {
-    pattern: /R.{2}[ST]/,  // Arg at -3 → Ser/Thr at +0
-    typicalKinases: ["PKA", "PKB/Akt", "PKC"]
+    pattern: /R.{2}[ST]/, // Arg at -3 → Ser/Thr at +0
+    typicalKinases: ["PKA", "PKB/Akt", "PKC"],
   },
   acidophilic: {
-    pattern: /[ST].{2}[DE]/,  // Ser/Thr at -3 → Asp/Glu at +0
-    typicalKinases: ["CK1", "CK2", "GSK3"]
+    pattern: /[ST].{2}[DE]/, // Ser/Thr at -3 → Asp/Glu at +0
+    typicalKinases: ["CK1", "CK2", "GSK3"],
   },
   prolineDirected: {
-    pattern: /[ST]P/,  // Ser/Thr at -1 → Pro at 0
-    typicalKinases: ["CDK", "MAPK", "GSK3"]
+    pattern: /[ST]P/, // Ser/Thr at -1 → Pro at 0
+    typicalKinases: ["CDK", "MAPK", "GSK3"],
   },
   // ... more patterns
-}
+};
 ```
 
 **Return:** Array of matching `{ motif, typicalKinases, specificity }`
@@ -460,15 +471,17 @@ const PHOSPHO_MOTIFS = {
 #### 3. **`getKinaseFamily`** — Classification Lookup
 
 **When used:**
+
 ```
 User: "What's in the AGC family?"
 → AI calls getKinaseFamily("AGC")
 ```
 
 **Parameters:**
+
 ```typescript
 {
-  family: string  // "AGC", "CAMK", "CK1", "CMGC", "STE", "TK", "TKL"
+  family: string; // "AGC", "CAMK", "CK1", "CMGC", "STE", "TK", "TKL"
 }
 ```
 
@@ -480,7 +493,7 @@ const KINASE_FAMILIES = {
   CAMK: ["CaMK", "DAPK", "MLCK", "MARK", "AMPK"],
   CK1: ["CK1α", "CK1δ", "CK1ε", "CK1γ"],
   // ...
-}
+};
 
 export function getKinaseFamilyDescription(family: string): string {
   // Returns: "Named after PKA, PKG, and PKC..."
@@ -492,6 +505,7 @@ export function getKinaseFamilyFeatures(family: string): string[] {
 ```
 
 **Return:**
+
 ```json
 {
   "family": "AGC",
@@ -508,12 +522,14 @@ export function getKinaseFamilyFeatures(family: string): string[] {
 #### 4. **`listPerturbations`** — Perturbation Enumeration
 
 **When used:**
+
 ```
 User: "Does KINEPIK have data for staurosporine?"
 → AI calls listPerturbations to check
 ```
 
 **Parameters:**
+
 ```typescript
 {
   cellType?: string,  // Filter to "MCF7", "NTERA2", or "HL60"
@@ -524,8 +540,9 @@ User: "Does KINEPIK have data for staurosporine?"
 **Purpose:** Returns all perturbations (drugs, gene knockouts, conditions) available in KINEPIK for a given cell type.
 
 **Why it matters:** The system prompt says:
+
 ```
-Before running KSEA analysis for a specific drug, call listPerturbations 
+Before running KSEA analysis for a specific drug, call listPerturbations
 first to confirm the exact perturbation name exists.
 ```
 
@@ -536,12 +553,14 @@ This prevents the AI from guessing drug names and getting zero results.
 #### 5. **`getKinaseNetwork`** — Network Visualization
 
 **When used:**
+
 ```
 User: "Visualize the EGFR signaling network"
 → AI calls getKinaseNetwork(["P00533"], ...)
 ```
 
 **Parameters:**
+
 ```typescript
 {
   uniprotIds: string[],    // Query kinases: ["P00533"] (EGFR)
@@ -556,9 +575,9 @@ User: "Visualize the EGFR signaling network"
 async function fetchNetworkData(uniprotIds: string[]) {
   // Query KINEPIK API for kinase-kinase interactions
   const res = await fetch(
-    `https://kinepik.org/api/0/network?kinases=${uniprotIds.join(',')}`
-  )
-  
+    `https://kinepik.org/api/0/network?kinases=${uniprotIds.join(",")}`,
+  );
+
   // Parse response into Cytoscape SIF format
   return {
     nodes: [
@@ -567,16 +586,23 @@ async function fetchNetworkData(uniprotIds: string[]) {
       // ... more nodes
     ],
     edges: [
-      { data: { source: "P00533", target: "P31749", interaction: "phosphorylates" } },
+      {
+        data: {
+          source: "P00533",
+          target: "P31749",
+          interaction: "phosphorylates",
+        },
+      },
       // ... more edges
-    ]
-  }
+    ],
+  };
 }
 ```
 
 **Client-side effect:** The `NetworkPanel` component (Cytoscape.js) renders an interactive graph in a side panel.
 
 **Why this design:** Network visualization requires client-side rendering (interactive pan/zoom/click). The tool returns **structured data**, and the client handles **presentation**. This separates concerns:
+
 - **Server:** Data retrieval logic
 - **Client:** UI rendering logic
 
@@ -591,12 +617,12 @@ async function fetchNetworkData(uniprotIds: string[]) {
 ```
 1. AI reads user message
    → System prompt provides context
-   
+
 2. AI thinks: "I need to:
      - Look up mTOR (P42345)
      - Analyze EGF-stimulated conditions
      - Call analyzeKinase to find upstream activators"
-   
+
 3. AI outputs first tool call:
    tool_name = "analyzeKinase"
    parameters = {
@@ -604,22 +630,22 @@ async function fetchNetworkData(uniprotIds: string[]) {
      cellType: "MCF7",
      experimentalCondition: "EGF-stimulated"
    }
-   
+
 4. Server executes:
    → Fetches https://kinepik.org/api/0/kinases/specific?kinase_ids=P42345&...
    → Returns: [{ kinaseName: "PI3K", ... }, { kinaseName: "PLCγ", ... }, ...]
-   
+
 5. AI receives tool result, incorporates into response:
-   "Based on the KINEPIK database, EGF-stimulated mTOR activation 
+   "Based on the KINEPIK database, EGF-stimulated mTOR activation
     involves PI3K and PLCγ as upstream kinases..."
-   
+
 6. AI may call another tool:
    tool_name = "getKinaseNetwork"
-   parameters = { 
+   parameters = {
      uniprotIds: ["P42336", "P31749", "P42345"],  // PI3K, AKT1, mTOR
      title: "EGF-stimulated PI3K/AKT/mTOR pathway"
    }
-   
+
 7. Network data is sent to client → panel opens
 ```
 
@@ -633,18 +659,18 @@ async function fetchNetworkData(uniprotIds: string[]) {
 
 ```typescript
 interface ChatState {
-  conversations: Conversation[]       // Multi-turn histories
-  activeConversationId: string | null // Currently selected
-  showThinking: boolean              // Reveal reasoning steps?
-  
+  conversations: Conversation[]; // Multi-turn histories
+  activeConversationId: string | null; // Currently selected
+  showThinking: boolean; // Reveal reasoning steps?
+
   // Actions
-  createConversation(): string
-  setActiveConversation(id: string): void
-  updateConversation(id: string, messages: StoredMessage[]): void
-  saveNetworkData(id: string, data: NetworkData): void
-  deleteConversation(id: string): void
-  toggleThinking(): void
-  clearMessages(): void
+  createConversation(): string;
+  setActiveConversation(id: string): void;
+  updateConversation(id: string, messages: StoredMessage[]): void;
+  saveNetworkData(id: string, data: NetworkData): void;
+  deleteConversation(id: string): void;
+  toggleThinking(): void;
+  clearMessages(): void;
 }
 ```
 
@@ -667,6 +693,7 @@ localStorage keys:
 ```
 
 **Advantages:**
+
 - User's conversation history persists across page refreshes
 - No server-side session DB needed (stateless backend)
 - Full conversation context available for new API calls
@@ -678,16 +705,18 @@ localStorage keys:
 Messages are stored in two formats:
 
 **1. Client storage (Zustand):**
+
 ```typescript
 interface StoredMessage {
-  id: string
-  role: "user" | "assistant"
-  content: string              // Plain text
-  parts?: { type: "text"; text: string }[]  // Tool results
+  id: string;
+  role: "user" | "assistant";
+  content: string; // Plain text
+  parts?: { type: "text"; text: string }[]; // Tool results
 }
 ```
 
 **2. AI SDK format (useChat hook):**
+
 ```typescript
 interface AIMessage {
   id: string
@@ -706,27 +735,28 @@ interface AIMessage {
 ```typescript
 // Store → AI format
 function fromStoredMessages(stored: StoredMessage[]) {
-  return stored.map(m => ({
+  return stored.map((m) => ({
     id: m.id,
     role: m.role,
     content: m.content,
-    parts: m.parts?.length ? m.parts : [{ type: "text", text: m.content }]
-  }))
+    parts: m.parts?.length ? m.parts : [{ type: "text", text: m.content }],
+  }));
 }
 
 // AI format → Store
 function toStoredMessages(aiMsgs: AIMessage[]) {
   return aiMsgs
-    .filter(m => m.role === "user" || m.role === "assistant")
-    .map(m => {
-      const textParts = m.parts.filter(p => p.type === "text")
-      const content = textParts.map(p => p.text).join("")
-      return { id: m.id, role: m.role, content, parts }
-    })
+    .filter((m) => m.role === "user" || m.role === "assistant")
+    .map((m) => {
+      const textParts = m.parts.filter((p) => p.type === "text");
+      const content = textParts.map((p) => p.text).join("");
+      return { id: m.id, role: m.role, content, parts };
+    });
 }
 ```
 
 **Why two formats?**
+
 - **Storage format:** Minimal (just text + parts), compresses well
 - **AI format:** Rich (includes tool metadata), needed for `streamText()` and rendering
 
@@ -768,6 +798,7 @@ When `getKinaseNetwork` is called:
 **Decision:** Backend stores no session data. Full message history sent with each request.
 
 **Rationale:**
+
 - ✅ Scales horizontally (any server can handle any request)
 - ✅ No database ops needed for chat (faster)
 - ❌ Bandwidth overhead for long conversations
@@ -782,6 +813,7 @@ When `getKinaseNetwork` is called:
 **Decision:** System prompt encodes all domain knowledge, validation rules, and response constraints.
 
 **Rationale:**
+
 - ✅ Centralized source of truth (all behavior flows from one file)
 - ✅ Easy to audit (what should the AI do? Read the prompt)
 - ✅ No code changes needed to adjust AI behavior
@@ -789,15 +821,16 @@ When `getKinaseNetwork` is called:
 - ❌ LLM can ignore prompt in unpredictable ways
 
 **Implementation:**
+
 ```typescript
 // lib/server/prompts.ts — single source of truth
-export const SYSTEM_PROMPT = `... entire behavioral spec ...`
+export const SYSTEM_PROMPT = `... entire behavioral spec ...`;
 
 // app/api/chat/route.ts — inject it
 streamText({
   system: SYSTEM_PROMPT + serverNote,
   // ... rest of config
-})
+});
 ```
 
 **Best practice:** Version control the prompt like source code. Comment it extensively. Test AI behavior changes.
@@ -810,10 +843,10 @@ streamText({
 
 **Comparison:**
 
-| Approach | Pros | Cons |
-|----------|------|------|
-| **Function Calling** | AI decides what data to fetch; responsive; can handle large datasets | Latency (extra round-trips); cost per tool call |
-| **Pre-computed Context** | Single-request latency; cheaper; predictable | Limited to context window; stale data; hallucination from clogging with data |
+| Approach                 | Pros                                                                 | Cons                                                                         |
+| ------------------------ | -------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| **Function Calling**     | AI decides what data to fetch; responsive; can handle large datasets | Latency (extra round-trips); cost per tool call                              |
+| **Pre-computed Context** | Single-request latency; cheaper; predictable                         | Limited to context window; stale data; hallucination from clogging with data |
 
 **Example:** 1000 kinases in KINEPIK.
 
@@ -829,11 +862,13 @@ streamText({
 **Decision:** Max 5 tool calls per message.
 
 **Rationale:**
+
 - Prevents runaway loops (AI calling tools infinitely)
 - Limits cost (each tool call = API call + LLM tokens)
 - Matches user expectation (messages should arrive in reasonable time)
 
 **Example:**
+
 ```
 User: "Analyze all kinases"
 → AI calls analyzeKinase 5 times, then stops
@@ -849,6 +884,7 @@ User: "Analyze all kinases"
 **Decision:** Use Cytoscape.js (WebGL-based graph library) for interactive networks.
 
 **Rationale:**
+
 - ✅ Handles 100+ nodes at 60 FPS
 - ✅ Built-in physics simulation (force-directed layout)
 - ✅ Rich interactions (drag, zoom, click)
@@ -890,13 +926,13 @@ export const PHOSPHO_MOTIFS = {
 
 ```typescript
 // tools/analyze-kinase.ts
-const KINEPIK_API = "https://kinepik.org/api/0"
+const KINEPIK_API = "https://kinepik.org/api/0";
 
 async function fetchKinaseInfo(uniprotIds: string[]) {
   const res = await fetch(
-    `${KINEPIK_API}/kinases/specific?kinase_ids=${ids}&...`
-  )
-  return res.json()
+    `${KINEPIK_API}/kinases/specific?kinase_ids=${ids}&...`,
+  );
+  return res.json();
 }
 ```
 
@@ -930,7 +966,7 @@ If `BIOCHATTER_API_URL` is set:
 
 ```
 System message includes:
-"You have access to curated biomedical knowledge via BioChatter's 
+"You have access to curated biomedical knowledge via BioChatter's
 RAG pipeline:
 - UniProt: Protein sequences, function, disease associations
 - Reactome: Signaling pathways and reaction networks
@@ -941,6 +977,7 @@ RAG pipeline:
 ```
 
 **How it works:**
+
 1. User query → sent to BioChatter server instead of OpenAI
 2. BioChatter **retrieves** relevant docs from knowledge bases
 3. BioChatter **augments** the LLM's response with citations
@@ -987,7 +1024,7 @@ The system **cascades** — try the most reliable source first, fall back to les
 
 ```typescript
 if (!res.ok) {
-  throw new Error(`KINEPIK /kinases/specific returned ${res.status}`)
+  throw new Error(`KINEPIK /kinases/specific returned ${res.status}`);
 }
 // Tool error caught by Vercel AI SDK
 // LLM receives: "Tool failed: KINEPIK API unreachable"
@@ -1008,15 +1045,18 @@ if (!res.ok) {
 **Scenario 3: Demo Mode (no API key)**
 
 ```typescript
-if (DEMO_MODE === 'true') {
+if (DEMO_MODE === "true") {
   // Return canned response
   return createUIMessageStream({
     execute: ({ writer }) => {
-      writer.write({ type: "text-start", id })
-      writer.write({ type: "text-delta", delta: "To enable responses, add OPENAI_API_KEY to .env.local" })
-      writer.write({ type: "text-end", id })
-    }
-  })
+      writer.write({ type: "text-start", id });
+      writer.write({
+        type: "text-delta",
+        delta: "To enable responses, add OPENAI_API_KEY to .env.local",
+      });
+      writer.write({ type: "text-end", id });
+    },
+  });
 }
 ```
 
@@ -1029,15 +1069,17 @@ if (DEMO_MODE === 'true') {
 ### Scenario: Graduate Student Analyzing Phosphoproteomics Experiment
 
 **Setup:**
+
 - Student has mass spec data: phosphosites in HeLa cells treated with Erlotinib (EGFR inhibitor)
 - Question: Which kinases are probably responsible?
 
 ### Message 1: Initial Query
 
 **Student sends:**
+
 ```
-"I found these phosphosites downregulated by Erlotinib in HeLa: 
-S123 on mTOR, T456 on AKT, Y789 on GSK3B. 
+"I found these phosphosites downregulated by Erlotinib in HeLa:
+S123 on mTOR, T456 on AKT, Y789 on GSK3B.
 Which upstream kinases might these be from?"
 ```
 
@@ -1045,7 +1087,7 @@ Which upstream kinases might these be from?"
 
 1. System prompt injected (domain knowledge)
 2. LLM analyzes query
-3. LLM decides: "These are tyrosine/serine phosphosites. Erlotinib targets EGFR. 
+3. LLM decides: "These are tyrosine/serine phosphosites. Erlotinib targets EGFR.
    I should analyze EGFR signaling cascades."
 4. LLM calls `analyzeKinase` with:
    ```
@@ -1062,15 +1104,16 @@ Which upstream kinases might these be from?"
 7. Network data sent to client → Cytoscape panel opens
 
 **LLM response:**
+
 ```
-The Erlotinib-downregulated phosphosites suggest inhibition of EGFR 
+The Erlotinib-downregulated phosphosites suggest inhibition of EGFR
 signaling cascade. Based on the KINEPIK database:
 
 - mTOR S123: Likely from PI3K/AKT pathway (z-score: -3.2, p < 0.001, n=42)
 - AKT T456: Direct EGFR substrate or via downstream PKA (z-score: -2.8, p < 0.01, n=35)
 - GSK3B Y789: Less likely direct target; possible feedback via Wnt pathway
 
-The network panel shows EGFR as hub. Erlotinib blocks EGFR autophosphorylation 
+The network panel shows EGFR as hub. Erlotinib blocks EGFR autophosphorylation
 → reduced PI3K recruitment → decreased AKT and mTOR activity.
 ```
 
@@ -1079,13 +1122,14 @@ The network panel shows EGFR as hub. Erlotinib blocks EGFR autophosphorylation
 ### Message 2: Follow-up
 
 **Student sends:**
+
 ```
 "Can you check if Staurosporine has data on these sites in MCF7?"
 ```
 
 **Backend processing:**
 
-1. LLM decides: "User wants to compare a different drug and cell line. 
+1. LLM decides: "User wants to compare a different drug and cell line.
    I should check what perturbations are available first."
 2. Calls `listPerturbations`:
    ```
@@ -1102,8 +1146,9 @@ The network panel shows EGFR as hub. Erlotinib blocks EGFR autophosphorylation
 6. Gets results → compares to Erlotinib results
 
 **LLM response:**
+
 ```
-In MCF7 cells, Staurosporine (a pan-kinase inhibitor) shows broader 
+In MCF7 cells, Staurosporine (a pan-kinase inhibitor) shows broader
 effects than Erlotinib:
 
 | Site | Erlotinib (HeLa) | Staurosporine (MCF7) |
@@ -1119,6 +1164,7 @@ The stronger MCF7 response likely reflects:
 ### Message 3: Visualization Request
 
 **Student sends:**
+
 ```
 "Show me the entire PI3K/AKT/mTOR pathway network"
 ```
@@ -1147,15 +1193,16 @@ The stronger MCF7 response likely reflects:
 4. Cytoscape renders: ~10 nodes, ~15 edges, force-directed layout
 
 **LLM response:**
+
 ```
-The network panel now displays the full PI3K/AKT/mTOR signaling cascade. 
+The network panel now displays the full PI3K/AKT/mTOR signaling cascade.
 Key observations:
 
 - AKT is the hub (3 incoming edges: PDK1, PIP3, PTEN antagonism)
 - mTOR branches into TORC1 (S6K → protein synthesis) and TORC2 (AKT feedback)
 - GSK3B downstream of AKT (proline-directed, inhibitory)
 
-Erlotinib blocks EGFR recruitment of PI3K → reduced AKT phosphorylation 
+Erlotinib blocks EGFR recruitment of PI3K → reduced AKT phosphorylation
 → disinhibition of GSK3B.
 ```
 
@@ -1176,4 +1223,3 @@ Erlotinib blocks EGFR recruitment of PI3K → reduced AKT phosphorylation
 - **BioChatter Documentation:** https://biochatter.org/
 - **KINEPIK Database:** https://kinepik.org
 - **Cytoscape.js:** https://js.cytoscape.org/
-

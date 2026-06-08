@@ -48,7 +48,10 @@ async function fetchLabels(
     for (const item of items) {
       if (typeof item === "object" && item !== null) {
         const obj = item as Record<string, unknown>;
-        if (typeof obj.UniprotID === "string" && typeof obj.MappedGene === "string") {
+        if (
+          typeof obj.UniprotID === "string" &&
+          typeof obj.MappedGene === "string"
+        ) {
           map[obj.UniprotID] = obj.MappedGene;
         }
         if (typeof obj.id === "string" && typeof obj.label === "string") {
@@ -94,7 +97,13 @@ export const getTopKinaseConnectivityTool = tool({
         "Network resolution to use for connectivity counting. 'kinases' returns kinase-kinase degree; 'phosphosites' includes site-level connections.",
       ),
   }),
-  execute: async ({ count, resolution }: { count: number; resolution: "kinases" | "phosphosites" }) => {
+  execute: async ({
+    count,
+    resolution,
+  }: {
+    count: number;
+    resolution: "kinases" | "phosphosites";
+  }) => {
     const sifText = await fetchAllSif(resolution);
     const degreeMap: Record<string, Set<string>> = {};
     let edgeCount = 0;
@@ -115,11 +124,20 @@ export const getTopKinaseConnectivityTool = tool({
     }
 
     const sorted = Object.entries(degreeMap)
-      .map(([uniprotId, neighbors]) => ({ uniprotId, degree: neighbors.size, neighbors: Array.from(neighbors) }))
-      .sort((a, b) => b.degree - a.degree || a.uniprotId.localeCompare(b.uniprotId))
+      .map(([uniprotId, neighbors]) => ({
+        uniprotId,
+        degree: neighbors.size,
+        neighbors: Array.from(neighbors),
+      }))
+      .sort(
+        (a, b) => b.degree - a.degree || a.uniprotId.localeCompare(b.uniprotId),
+      )
       .slice(0, count);
 
-    const labels = await fetchLabels(sorted.map((entry) => entry.uniprotId), resolution);
+    const labels = await fetchLabels(
+      sorted.map((entry) => entry.uniprotId),
+      resolution,
+    );
 
     const topKinases: ConnectivityEntry[] = sorted.map((entry) => ({
       uniprotId: entry.uniprotId,

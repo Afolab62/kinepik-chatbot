@@ -417,16 +417,21 @@ export default function HelpPage() {
                 Example prompt
               </h2>
               <p className="text-sm text-muted-foreground mb-4">
-                Try asking the assistant to both visualise a network and rank the
-                most connected kinases.
+                Try asking the assistant to both visualise a network and rank
+                the most connected kinases.
               </p>
               <div className="p-4 bg-muted rounded-lg border border-border">
                 <code className="text-xs text-foreground whitespace-pre-wrap">
-                  Visualise the EGFR signalling network and show the top 10 most connected kinases.
+                  Visualise the EGFR signalling network and show the top 10 most
+                  connected kinases.
                 </code>
               </div>
               <p className="text-xs text-muted-foreground mt-3">
-                Note: the app can open an interactive Cytoscape network panel for kinase network visualisation. It also supports markdown-style tables for ranked connectivity or KSEA comparisons, but it does not yet render native bar-chart or heatmap widgets unless the assistant supplies image content.
+                Note: the app can open an interactive Cytoscape network panel
+                for kinase network visualisation. It also supports
+                markdown-style tables for ranked connectivity or KSEA
+                comparisons, but it does not yet render native bar-chart or
+                heatmap widgets unless the assistant supplies image content.
               </p>
             </div>
           </div>

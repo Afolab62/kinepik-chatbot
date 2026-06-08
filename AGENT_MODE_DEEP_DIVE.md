@@ -9,6 +9,7 @@ A comprehensive technical guide to understanding agentic loops, system prompts, 
 ### Traditional AI vs. Agentic AI
 
 **Traditional AI (Like ChatGPT):**
+
 ```
 User: "What's the capital of France?"
 ↓
@@ -22,6 +23,7 @@ Done. No further decisions.
 The AI reads your question, generates an answer, and stops. It's one-shot reasoning.
 
 **Agentic AI (Like KINEPIK):**
+
 ```
 User: "Which kinases are inhibited by Rapamycin in MCF7 cells?"
 ↓
@@ -182,15 +184,15 @@ export const SYSTEM_PROMPT = `
   You are KINEPIK Assistant, an AI system for kinase identification 
   and phosphoproteomics analysis...
   [1000+ tokens of instructions]
-`
+`;
 
 // app/api/chat/route.ts
 const result = streamText({
   model: getBiochatterModel(),
-  system: SYSTEM_PROMPT + serverNote,  // ← Injected every request
+  system: SYSTEM_PROMPT + serverNote, // ← Injected every request
   messages: modelMessages,
-  tools: chatTools
-})
+  tools: chatTools,
+});
 ```
 
 **Every request**, the system prompt is sent. It's not stored in the AI's memory — it's a fresh instruction set each time.
@@ -200,9 +202,9 @@ const result = streamText({
 #### Section 1: Identity & Purpose
 
 ```
-You are KINEPIK Assistant, an AI system for kinase identification 
-and phosphoproteomics analysis, backed by the KINEPIK database 
-(kinepik.org) — an integrated data resource for cell signalling 
+You are KINEPIK Assistant, an AI system for kinase identification
+and phosphoproteomics analysis, backed by the KINEPIK database
+(kinepik.org) — an integrated data resource for cell signalling
 research developed at Queen Mary University of London.
 ```
 
@@ -220,6 +222,7 @@ KINEPIK contains:
 ```
 
 **Why?** Tells the AI what data exists. Without this:
+
 - AI wouldn't know which cell lines are available
 - AI might ask for data that doesn't exist
 - AI would hallucinate instead of saying "not in database"
@@ -246,18 +249,19 @@ You can call the KINEPIK API directly via tools to retrieve real data:
 
 ```
 Known UniProt IDs:
-EGFR=P00533, mTOR=P42345, AKT1=P31749, AKT2=P31751, AKT3=Q9Y243, 
-CDK2=P24941, ERK2/MAPK1=P28482, ERK1/MAPK3=P27361, PDK1=O15530, 
-PI3K(PIK3CA)=P42336, PTEN=P60484, SRC=P12931, JAK1=P23458, JAK2=O60674, 
-STAT3=P40763, RAF1=P04049, BRAF=P15056, MEK1/MAP2K1=Q02750, 
-p38/MAPK14=Q16539, JNK1/MAPK8=P45983, RSK1/RPS6KA1=Q15418, 
-S6K1/RPS6KB1=P23443, 4EBP1/EIF4EBP1=Q13541, STK11/LKB1=Q15831, 
+EGFR=P00533, mTOR=P42345, AKT1=P31749, AKT2=P31751, AKT3=Q9Y243,
+CDK2=P24941, ERK2/MAPK1=P28482, ERK1/MAPK3=P27361, PDK1=O15530,
+PI3K(PIK3CA)=P42336, PTEN=P60484, SRC=P12931, JAK1=P23458, JAK2=O60674,
+STAT3=P40763, RAF1=P04049, BRAF=P15056, MEK1/MAP2K1=Q02750,
+p38/MAPK14=Q16539, JNK1/MAPK8=P45983, RSK1/RPS6KA1=Q15418,
+S6K1/RPS6KB1=P23443, 4EBP1/EIF4EBP1=Q13541, STK11/LKB1=Q15831,
 AMPK(PRKAA1)=Q13131, GSK3B=P49841, CHEK1=O14757, CHEK2=O96017
 ```
 
 **Why? This is CRITICAL:**
 
 Without this mapping:
+
 ```
 User: "Tell me about EGFR"
 AI thinks: "I need EGFR data"
@@ -269,6 +273,7 @@ User: "But I know EGFR should be there!"
 ```
 
 With the mapping:
+
 ```
 User: "Tell me about EGFR"
 AI reads prompt: "EGFR = P00533"
@@ -281,13 +286,14 @@ User: "Thanks!"
 #### Section 5: How to Use Tools Safely
 
 ```
-Before running KSEA analysis for a specific drug, call listPerturbations 
-first to confirm the exact perturbation name exists in the database. 
-Drug names are case-sensitive and must match exactly 
+Before running KSEA analysis for a specific drug, call listPerturbations
+first to confirm the exact perturbation name exists in the database.
+Drug names are case-sensitive and must match exactly
 (e.g. "AZD3759", not "azd3759" or "AZD 3759").
 ```
 
 **Why?** Prevents the AI from guessing drug names:
+
 - User: "Check Staurosporine"
 - Without instruction: AI queries for "staurosporine" (lowercase) → 0 results
 - With instruction: AI calls listPerturbations first → finds "Staurosporine" → queries correctly
@@ -295,18 +301,19 @@ Drug names are case-sensitive and must match exactly
 #### Section 6: Response Style Rules
 
 ```
-Never say "the database returned", "the tool returned", "returned data", 
+Never say "the database returned", "the tool returned", "returned data",
 or "API result" — present findings as scientific observations
 
-Do not add a "Next Steps" or "Recommendations" section unless the user 
+Do not add a "Next Steps" or "Recommendations" section unless the user
 explicitly asks for it
 
-If KSEA data is unavailable (n=0 substrates): state in one sentence it 
-is not in the database, then speculate briefly prefixed with 
+If KSEA data is unavailable (n=0 substrates): state in one sentence it
+is not in the database, then speculate briefly prefixed with
 "Based on known biology:"
 ```
 
 **Why?** Enforces professional, scientific communication:
+
 - ❌ Bad: "The KINEPIK API returned z-score = -3.2"
 - ✅ Good: "mTOR shows strong inhibition (z = -3.2, p < 0.001)"
 
@@ -325,12 +332,14 @@ n = number of substrate phosphosites (higher = more reliable)
 ```
 
 **Why?** Prevents misinterpretation:
+
 - Without: AI might say "z-score 0.5 means activated" (wrong)
 - With: AI correctly interprets "0.5 means no significant change"
 
 ### How Long Is It?
 
 About 1000 tokens, which costs:
+
 - ~$0.01 per message for input (1000 tokens)
 - Sent with every request
 
@@ -339,17 +348,20 @@ About 1000 tokens, which costs:
 **Alternative approach:** Instead of sending the prompt, fine-tune OpenAI's model on your domain.
 
 **Advantages of fine-tuning:**
+
 - Slightly cheaper (no prompt overhead)
 - Faster (model already knows the domain)
 - Persistent knowledge
 
 **Disadvantages:**
+
 - Expensive (~$25-100 per fine-tuning job)
 - Hard to iterate (takes hours to train)
 - Harder to update when database changes
 - Still need some prompt (fine-tuning isn't perfect)
 
 **KINEPIK's choice:** Use prompting instead because:
+
 - Easy to iterate (change text, redeploy)
 - Transparent (you can see the instructions)
 - Flexible (add/remove instructions on the fly)
@@ -378,6 +390,7 @@ User: "Which kinases are affected by Rapamycin in MCF7?"
 The model processes this and generates output **token by token**.
 
 The model's "thinking" at each step:
+
 ```
 Step 1: Model reads system prompt
   → Learns: "I'm a kinase expert", "I have access to tools"
@@ -386,7 +399,7 @@ Step 2: Model reads user query
   → Understands: "User wants to know about Rapamycin effect in MCF7"
 
 Step 3: Model decides what to generate
-  → Reasons: "I don't know Rapamycin's effect on all kinases. 
+  → Reasons: "I don't know Rapamycin's effect on all kinases.
              I should call a tool to query the database."
 
 Step 4: Model outputs tool call
@@ -402,7 +415,7 @@ Step 4: Model outputs tool call
 
 Step 5: Model receives tool result
   → Processes: "Real data shows mTOR inhibited (z=-4.1)"
-  
+
 Step 6: Model continues generating
   → Outputs: "KINEPIK database shows mTOR is strongly inhibited..."
 ```
@@ -425,11 +438,13 @@ The model follows instructions because:
 **User:** "What is PKA?"
 
 **System Prompt teaches:**
+
 - PKA is in the AGC family
 - PKA phosphorylates basophilic substrates
 - Available in general kinase knowledge
 
 **AI Decision:**
+
 - "I know this from my training + system prompt"
 - "No tool call needed"
 - Response: "PKA (Protein Kinase A) is a member of the AGC kinase family..."
@@ -530,27 +545,29 @@ The model follows instructions because:
 ### Problem: Hallucination
 
 **Without agent + prompting:**
+
 ```
 User: "Is AKT1 in MCF7 KINEPIK data?"
-AI: "Yes, AKT1 is well-characterized in MCF7 cells. 
+AI: "Yes, AKT1 is well-characterized in MCF7 cells.
      Studies show it regulates mTOR signaling."
 
-Reality: AKT1 might not be in KINEPIK for MCF7. 
+Reality: AKT1 might not be in KINEPIK for MCF7.
          AI made that up from training data.
 ```
 
 **With agent + prompting:**
+
 ```
 User: "Is AKT1 in MCF7 KINEPIK data?"
 AI: Calls analyzeKinase(AKT1, MCF7)
 Result: Returns real data
-AI: "KINEPIK shows AKT1 phosphorylates [list]..." 
+AI: "KINEPIK shows AKT1 phosphorylates [list]..."
     (with z-scores, p-values, n counts)
 
 OR
 
 Result: Returns empty (not in database)
-AI: "AKT1 data is not in KINEPIK for MCF7. 
+AI: "AKT1 data is not in KINEPIK for MCF7.
      Based on known biology: AKT1 typically..."
 ```
 
@@ -587,35 +604,35 @@ const handleSubmit = (message) => {
 // 2. BACKEND (Express route handler)
 export async function POST(req: Request) {
   const { messages } = await req.json()
-  
+
   // Validate API key
   const { valid, error } = validateApiKey()
   if (!valid) return Response.json({ error }, { status: 500 })
-  
+
   // Convert message format (Vercel AI SDK expects specific format)
   const modelMessages = await convertToModelMessages(messages)
-  
+
   // Call Vercel AI SDK streamText
   const result = streamText({
     model: getBiochatterModel(),  // OpenAI or BioChatter server
-    
+
     system: SYSTEM_PROMPT + serverNote,  // ← The manual
-    
+
     messages: modelMessages,  // Full history
-    
+
     tools: chatTools,  // {
                        //   analyzeKinase: {...},
                        //   getKinaseNetwork: {...},
                        //   ...
                        // }
-    
+
     stopWhen: stepCountIs(5),  // Max 5 tool calls
-    
+
     onFinish({ totalUsage }) {
       console.log(`Tokens: ${totalUsage.inputTokens}`)
     }
   })
-  
+
   // Return SSE stream to client
   return result.toUIMessageStreamResponse()
 }
@@ -627,7 +644,7 @@ const result = await streamText({
   messages,
   tools
   // ... internally does:
-  
+
   // a) Formats request to OpenAI:
   // POST https://api.openai.com/v1/chat/completions
   // {
@@ -649,7 +666,7 @@ const result = await streamText({
   //     ...
   //   ]
   // }
-  
+
   // b) Receives streaming response from OpenAI:
   // {
   //   "choices": [{
@@ -672,14 +689,14 @@ const result = await streamText({
   //     }
   //   }]
   // }
-  
+
   // c) When tool_call detected:
   //    - Pauses text generation
   //    - Executes tool locally
   //    - Gets result
   //    - Sends result back to OpenAI
   //    - OpenAI continues generating
-  
+
   // d) Converts all of this to UIMessageStream format:
   // {
   //   type: 'text-start',
@@ -747,22 +764,26 @@ Total:            1,800 tokens          ≈ $0.016/message
 ```
 
 **With max 5 tool calls:**
+
 - Each tool call ~ $0.001 (external API, not LLM tokens)
 - 5 tools = $0.005
 
 **Total per message: ~$0.021 per message**
 
 **At scale:**
+
 - 100 users × 10 messages/day × 30 days × $0.021 = **$630/month**
 
 ### Speed
 
 **Latency:**
+
 - System + model inference: ~2 seconds
 - Each tool call: ~1 second (network + API call)
 - Total for 2 tools: ~4 seconds
 
 **Why streaming matters:**
+
 - With streaming: User sees text appear after 0.5 seconds (feels responsive)
 - Without streaming: User waits 4 seconds for blank screen
 
@@ -773,11 +794,13 @@ Total:            1,800 tokens          ≈ $0.016/message
 ### Misconception 1: "The AI reads all the code"
 
 **False.** The AI doesn't have access to:
+
 - Tool implementation code
 - System architecture
 - Database schema
 
 The AI only knows what the system prompt tells it:
+
 ```
 "You can call these tools: analyzeKinase, getKinaseNetwork, ..."
 ```
@@ -791,6 +814,7 @@ The AI doesn't know **how** these tools work internally — just that they exist
 **False.** The system prompt is sent **every request**, not stored in the model.
 
 Think of it like:
+
 ```
 Every conversation = Fresh chat with a new person
 That person is handed a manual every time
@@ -800,6 +824,7 @@ After conversation: They forget the manual
 ```
 
 This is why:
+
 - Same prompt consistency (manual is identical every time)
 - Easy to update (change text, redeploy)
 - No "forgetting" between requests
@@ -809,6 +834,7 @@ This is why:
 ### Misconception 3: "The AI understands the biology"
 
 **Partially true.** The AI:
+
 - ✅ Knows general biology from training
 - ✅ Can read and interpret scientific results
 - ✅ Can synthesize information
@@ -823,14 +849,14 @@ That's why we **force it to use real data via tools**.
 
 **Different, not smarter.** Comparison:
 
-| Aspect | ChatGPT | KINEPIK |
-|--------|---------|--------|
-| General knowledge | Excellent | OK (but constrained by prompt) |
+| Aspect                 | ChatGPT                  | KINEPIK                          |
+| ---------------------- | ------------------------ | -------------------------------- |
+| General knowledge      | Excellent                | OK (but constrained by prompt)   |
 | Biochemistry knowledge | Good (trained on papers) | Same, but with live data overlay |
-| Specific KINEPIK data | No access | Full access |
-| Hallucination risk | High (for specific data) | Low (data-backed) |
-| Speed | Fast | Slower (tool calls) |
-| Cost | Per use | Per message + tool calls |
+| Specific KINEPIK data  | No access                | Full access                      |
+| Hallucination risk     | High (for specific data) | Low (data-backed)                |
+| Speed                  | Fast                     | Slower (tool calls)              |
+| Cost                   | Per use                  | Per message + tool calls         |
 
 **KINEPIK isn't smarter — it's more truthful about specific data.**
 
@@ -843,6 +869,7 @@ That's why we **force it to use real data via tools**.
 To add a new tool (e.g., `predictKinaseInhibitor`):
 
 **Step 1: Define the tool**
+
 ```typescript
 // lib/server/tools/predict-inhibitor.ts
 export const predictInhibitorTool = tool({
@@ -859,16 +886,18 @@ export const predictInhibitorTool = tool({
 ```
 
 **Step 2: Add to tools export**
+
 ```typescript
 // lib/server/tools/index.ts
 export const chatTools = {
   analyzeKinase: analyzeKinaseTool,
-  predictInhibitor: predictInhibitorTool,  // ← New
+  predictInhibitor: predictInhibitorTool, // ← New
   // ...
-}
+};
 ```
 
 **Step 3: Update system prompt**
+
 ```typescript
 // lib/server/prompts.ts
 export const SYSTEM_PROMPT = `
@@ -877,7 +906,7 @@ export const SYSTEM_PROMPT = `
   You can call predictKinaseInhibitor to get potential inhibitors
   for a specific kinase.
   ...
-`
+`;
 ```
 
 **That's it.** The AI now knows about the new tool and can use it automatically.
