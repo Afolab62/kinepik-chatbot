@@ -437,6 +437,74 @@ export default function HelpPage() {
           </div>
         </motion.div>
 
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="p-6 bg-card border border-border rounded-xl mb-8"
+        >
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+              <Beaker className="w-6 h-6 text-slate-700 dark:text-slate-200" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-foreground mb-2">
+                Suggested query patterns
+              </h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                Use these question templates to get sensible KSEA, kinase activity,
+                and combination-drug answers from the assistant.
+              </p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="p-4 bg-muted rounded-lg border border-border">
+                  <p className="text-xs font-semibold text-foreground mb-2">
+                    1. What happens when {"{cell line}"} is treated with {"{drug}"}?
+                  </p>
+                  <code className="text-xs text-foreground whitespace-pre-wrap">
+                    What happens when MCF7 cells are treated with AZD3759?
+                    
+                    What happens when NTERA2 cells are treated with Dasatinib?
+                  </code>
+                </div>
+                <div className="p-4 bg-muted rounded-lg border border-border">
+                  <p className="text-xs font-semibold text-foreground mb-2">
+                    2. What effect does {"{drug}"} have on the activity of {"{kinase}"}?
+                  </p>
+                  <code className="text-xs text-foreground whitespace-pre-wrap">
+                    What effect does AZD3759 have on mTOR activity in MCF7?
+                    
+                    How does Dasatinib affect AKT1 in NTERA2?
+                  </code>
+                </div>
+                <div className="p-4 bg-muted rounded-lg border border-border">
+                  <p className="text-xs font-semibold text-foreground mb-2">
+                    3. Why does {"{kinase}"} activity reduce when {"{cell line}"} is treated with {"{drug}"}?
+                  </p>
+                  <code className="text-xs text-foreground whitespace-pre-wrap">
+                    Why does mTOR activity reduce when MCF7 is treated with AZD3759?
+                    
+                    Why does AKT1 get inhibited when NTERA2 is treated with Dasatinib?
+                  </code>
+                </div>
+                <div className="p-4 bg-muted rounded-lg border border-border">
+                  <p className="text-xs font-semibold text-foreground mb-2">
+                    4. What would happen if {"{cell line}"} was treated with {"{drug A}"} and {"{drug B}"}?
+                  </p>
+                  <code className="text-xs text-foreground whitespace-pre-wrap">
+                    What would happen if MCF7 was treated with both AZD3759 and Dasatinib?
+                    
+                    What is the combined effect of AZD3759 and Gefitinib in HL60?
+                  </code>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-3">
+                These templates are useful for KSEA analysis, kinase activity
+                interpretation, and combination perturbation comparisons.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
         {/* API Sections */}
         <div className="space-y-4">
           {API_SECTIONS.map((section, sectionIdx) => (
