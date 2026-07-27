@@ -103,7 +103,7 @@ export function NetworkPanel({ networkData, isOpen, onClose }: NetworkPanelProps
             height: 60,
             shape: "ellipse",
             "text-wrap": "wrap",
-            "text-max-width": 52,
+            "text-max-width": "52",
           },
         },
         // --- Protein nodes (non-kinase) ---
@@ -122,7 +122,7 @@ export function NetworkPanel({ networkData, isOpen, onClose }: NetworkPanelProps
             height: 48,
             shape: "ellipse",
             "text-wrap": "wrap",
-            "text-max-width": 42,
+            "text-max-width": "42",
           },
         },
         // --- Phosphosite nodes ---
@@ -141,7 +141,7 @@ export function NetworkPanel({ networkData, isOpen, onClose }: NetworkPanelProps
             height: 20,
             shape: "round-rectangle",
             "text-wrap": "wrap",
-            "text-max-width": 30,
+            "text-max-width": "30",
           },
         },
         // --- Edges ---

@@ -3,8 +3,10 @@
 import { tool } from "ai";
 import { z } from "zod";
 import type { KinaseCandidate } from "@/lib/types/kinepik";
+import { resolvePerturbationName } from "./perturbation-catalog";
 
 const KINEPIK_API = "https://kinepik.org/api/0";
+const KINEPIK_LOG_REQUESTS = process.env.KINEPIK_LOG_REQUESTS === "true";
 
 // Map a raw KINEPIK API kinase object to our KinaseCandidate shape.
 // Real API returns: SourceUniprotID, UniprotName ("MTOR_HUMAN"), TargetPhosphosites
@@ -75,10 +77,24 @@ interface KseaResult {
   cellLine: string;
 }
 
+export function parseKinepikJson(raw: string): unknown {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    // KINEPIK occasionally emits non-JSON numeric tokens like NaN/Infinity.
+    // Replace them with null so the rest of the payload remains parseable.
+    const normalized = raw
+      .replace(/\b-?Infinity\b/g, "null")
+      .replace(/\bNaN\b/g, "null");
+    return JSON.parse(normalized);
+  }
+}
+
 async function fetchKseaScores(
   uniprotIds: string[],
   perturbation: string,
   cellLine: string,
+  useWeightedZScore: boolean,
   errors: string[],
 ): Promise<Record<string, KseaResult>> {
   const scores: Record<string, KseaResult> = {};
@@ -91,7 +107,12 @@ async function fetchKseaScores(
           `?kinase_ids=${encodeURIComponent(id)}` +
           `&perturbations=${encodeURIComponent(perturbation)}` +
           `&cell_line=${encodeURIComponent(cellLine)}` +
-          `&weighted=true&autophosphorylation=exclude&phosphosite_confidence=1`;
+          `&weighted=${useWeightedZScore}&autophosphorylation=exclude&phosphosite_confidence=1`;
+        if (KINEPIK_LOG_REQUESTS) {
+          console.log(
+            `[kinepik-request] tool=analyzeKinase endpoint=/perturbation/KSEA kinase_ids=${id} perturbation=${perturbation} cell_line=${cellLine} weighted=${useWeightedZScore} autophosphorylation=exclude phosphosite_confidence=1 url=${url}`,
+          );
+        }
         const res = await fetch(url, {
           headers: { Accept: "application/json" },
           signal,
@@ -101,11 +122,13 @@ async function fetchKseaScores(
           errors.push(`KSEA ${id}: HTTP ${res.status}`);
           return;
         }
-        const data = await res.json();
+        const text = await res.text();
+        const data = parseKinepikJson(text);
         // Weighted response: { value: [{ "P00533": { "AZD3759": { WeightedZ_score, n, p_value } } }], Count: N }
         // Unweighted response (fallback): plain array [{ "Q15208": { "AZD3759": { z_score, n, p_value } } }]
-        const entries: Record<string, unknown>[] = Array.isArray(data?.value)
-          ? data.value
+        const parsed = data as any;
+        const entries: Record<string, unknown>[] = Array.isArray(parsed?.value)
+          ? parsed.value
           : Array.isArray(data)
             ? data
             : [];
@@ -118,8 +141,11 @@ async function fetchKseaScores(
           if (!pertData) continue;
           const n = pertData.n;
           if (typeof n !== "number" || n === 0) continue;
-          // weighted=true returns WeightedZ_score; unweighted fallback returns z_score
-          const zScore = pertData.WeightedZ_score ?? pertData.z_score;
+          // weighted=true usually returns WeightedZ_score, but some payloads
+          // only include z_score. Fall back so valid records are not dropped.
+          const zScore = useWeightedZScore
+            ? pertData.WeightedZ_score ?? pertData.z_score
+            : pertData.z_score;
           const pValue = pertData.p_value;
           if (typeof zScore === "number" && !isNaN(zScore)) {
             scores[id] = {
@@ -141,8 +167,9 @@ async function fetchKseaScores(
 
 export const analyzeKinaseTool = tool({
   description:
-    "Query the live KINEPIK database (kinepik.org) for real kinase data, phosphorylation sites, and KSEA enrichment scores. " +
-    "Use this when the user asks about kinases, phosphorylation, inhibitors, or signalling pathways. " +
+    "Query the live KINEPIK database (kinepik.org) for real kinase data, phosphorylation sites, substrate targets, and KSEA enrichment scores. " +
+    "Use this when the user asks about kinases, phosphorylation, substrate targets, inhibitors, or signalling pathways. " +
+    "If the user asks which proteins or phosphosites a kinase targets, call this tool with only the kinase UniProt ID and omit perturbation. " +
     "You MUST provide UniProt IDs for the kinases of interest — use your knowledge to supply them (e.g. mTOR=P42345, AKT1=P31749, EGFR=P00533).",
   inputSchema: z.object({
     uniprotIds: z
@@ -156,26 +183,35 @@ export const analyzeKinaseTool = tool({
       .string()
       .optional()
       .describe(
-        'Inhibitor or perturbation name for KSEA analysis. Must match the exact name in KINEPIK — use the drug\'s common name as a single word (e.g. "AZD3759", "Gefitinib", "Erlotinib"). ' +
+        'Optional inhibitor or perturbation name for KSEA analysis. Omit this field entirely for target/substrate-only questions. When provided, it must match the exact name in KINEPIK — use the drug\'s common name as a single word (e.g. "AZD3759", "Gefitinib", "Erlotinib"). ' +
           'Note: "Rapamycin" has no substrate measurements for mTOR in KINEPIK — try "AZD3759" or other inhibitors instead.',
       ),
     cellLine: z
       .enum(["MCF7", "NTERA2", "HL60"])
       .optional()
       .describe("Cell line for experimental data context. Defaults to MCF7."),
+    useWeightedZScore: z
+      .boolean()
+      .optional()
+      .describe(
+        'Use weighted z-scores (default: true). When false, returns unweighted z-scores. Weighted scores incorporate substrate quality weights; unweighted scores treat all substrates equally.',
+      ),
   }),
   execute: async ({
     uniprotIds,
     perturbation,
     cellLine = "MCF7",
+    useWeightedZScore = true,
   }: {
     uniprotIds: string[];
     perturbation?: string;
     cellLine?: "MCF7" | "NTERA2" | "HL60";
+    useWeightedZScore?: boolean;
   }) => {
     let candidates: KinaseCandidate[] = [];
     let kseaScores: Record<string, KseaResult> = {};
     const errors: string[] = [];
+    let resolvedPerturbation = perturbation;
 
     try {
       candidates = await fetchKinaseInfo(uniprotIds);
@@ -184,11 +220,35 @@ export const analyzeKinaseTool = tool({
     }
 
     if (perturbation && uniprotIds.length > 0) {
+      const resolution = resolvePerturbationName(perturbation);
+      if (!resolution.matched || !resolution.resolvedName) {
+        const suggestions =
+          resolution.suggestions.length > 0
+            ? ` Closest matches: ${resolution.suggestions.join(", ")}.`
+            : "";
+        return {
+          analysisNotes: [
+            `The perturbation \"${perturbation}\" is not in the local KINEPIK perturbation catalogue.${suggestions}`,
+            `Use one of the exact perturbation names from listPerturbations before requesting KSEA values.`,
+          ],
+          resolvedPerturbation: null,
+          perturbationSuggestions: resolution.suggestions,
+        };
+      }
+
+      resolvedPerturbation = resolution.resolvedName;
+      if (resolution.autoCorrected && resolvedPerturbation) {
+        errors.push(
+          `Perturbation name normalized from ${perturbation} to ${resolvedPerturbation}.`,
+        );
+      }
+
       try {
         kseaScores = await fetchKseaScores(
           uniprotIds,
-          perturbation,
+          resolvedPerturbation,
           cellLine,
+          useWeightedZScore,
           errors,
         );
       } catch (err) {
@@ -197,6 +257,7 @@ export const analyzeKinaseTool = tool({
     }
 
     const kseaFound = Object.keys(kseaScores).length;
+    const zScoreMethod = useWeightedZScore ? "weighted" : "unweighted";
 
     // Format KSEA results for the model: include z-score, p-value, n, and direction
     const kseaSummary = Object.entries(kseaScores).map(([id, r]) => {
@@ -219,22 +280,22 @@ export const analyzeKinaseTool = tool({
           : r.pValue < 0.05
             ? `p=${r.pValue.toFixed(3)} (significant)`
             : `p=${r.pValue.toFixed(3)} (not significant)`;
-      return `${name} (${id}): KSEA z-score=${r.zScore.toFixed(3)}, ${sig}, n=${r.n} substrates — ${interpretation} by ${perturbation} in ${r.cellLine}`;
+      return `${name} (${id}): ${zScoreMethod} KSEA z-score=${r.zScore.toFixed(4)}, ${sig}, n=${r.n} substrates — ${interpretation} by ${perturbation} in ${r.cellLine}`;
     });
 
     const kseaErrors = errors.filter((e) => e.startsWith("KSEA"));
     const kseaNote = perturbation
       ? kseaFound > 0
-        ? `KSEA results for ${perturbation} in ${cellLine}:\n${kseaSummary.join("\n")}`
+        ? `KSEA results for ${resolvedPerturbation} in ${cellLine} (${zScoreMethod} z-scores):\n${kseaSummary.join("\n")}`
         : kseaErrors.length > 0
-          ? `KSEA API error for ${perturbation} in ${cellLine} (${kseaErrors.join("; ")}) — the data may exist but the KINEPIK server was temporarily unavailable. Do not say n=0; instead speculate based on known biology.`
-          : `KSEA: no substrate data found in KINEPIK for ${perturbation} in ${cellLine} (n=0 substrates measured for this combination).`
-      : "No perturbation specified — provide a drug/inhibitor name for KSEA analysis";
+          ? `KSEA API error for ${resolvedPerturbation} in ${cellLine} (${kseaErrors.join("; ")}) — this appears to be a malformed upstream KINEPIK payload rather than an unknown perturbation. Do not say n=0; provide brief biological context in natural wording.`
+          : `KSEA: no substrate data found in KINEPIK for ${resolvedPerturbation} in ${cellLine} (n=0 substrates measured for this combination).`
+      : "Substrate-only lookup: no perturbation or cell-line filter was requested, so this result reflects kinase-target records rather than treatment-specific KSEA analysis.";
 
     const notes = [
       `Queried KINEPIK live API for: ${uniprotIds.join(", ")}`,
       candidates.length > 0
-        ? `Kinase records found: ${candidates.map((c) => `${c.kinaseName} (${c.uniprotId}), ${c.phosphositeCount} known target phosphosites`).join("; ")}`
+        ? `Kinase records found: ${candidates.map((c) => `${c.kinaseName} (${c.uniprotId}), ${c.phosphositeCount} known target phosphosites${c.substrate ? ` (examples: ${c.substrate})` : ""}`).join("; ")}`
         : `No kinase records found for: ${uniprotIds.join(", ")}`,
       kseaNote,
       ...(errors.filter((e) => !e.startsWith("KSEA")).length
@@ -245,6 +306,6 @@ export const analyzeKinaseTool = tool({
     ].filter(Boolean);
 
     // Return only analysisNotes — raw objects are not needed by the model and waste tokens
-    return { analysisNotes: notes };
+    return { analysisNotes: notes, resolvedPerturbation };
   },
 });

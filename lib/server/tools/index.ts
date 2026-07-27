@@ -8,6 +8,9 @@ export { getKinaseNetworkTool } from "./get-kinase-network";
 export { getTopKinaseConnectivityTool } from "./top-kinase-connectivity";
 export { comparePerturbationsTool } from "./compare-perturbations";
 export { topAffectedKinasesTool } from "./top-affected-kinases";
+export { batchRankKinasesTool } from "./batch-rank-kinases";
+export { analyzeCombinationTherapyTool } from "./combination-therapy";
+export { generateVisualizationTool } from "./generate-visualization";
 
 import { analyzeKinaseTool } from "./analyze-kinase";
 import { analyzeMotifTool } from "./analyze-motif";
@@ -17,6 +20,9 @@ import { getKinaseNetworkTool } from "./get-kinase-network";
 import { getTopKinaseConnectivityTool } from "./top-kinase-connectivity";
 import { topAffectedKinasesTool } from "./top-affected-kinases";
 import { comparePerturbationsTool } from "./compare-perturbations";
+import { batchRankKinasesTool } from "./batch-rank-kinases";
+import { analyzeCombinationTherapyTool } from "./combination-therapy";
+import { generateVisualizationTool } from "./generate-visualization";
 
 // Named tool map — pass directly to streamText({ tools: chatTools })
 export const chatTools = {
@@ -28,4 +34,7 @@ export const chatTools = {
   getTopKinaseConnectivity: getTopKinaseConnectivityTool,
   getTopAffectedKinases: topAffectedKinasesTool,
   comparePerturbations: comparePerturbationsTool,
+  batchRankKinases: batchRankKinasesTool,
+  analyzeCombinationTherapy: analyzeCombinationTherapyTool,
+  generateVisualization: generateVisualizationTool,
 };

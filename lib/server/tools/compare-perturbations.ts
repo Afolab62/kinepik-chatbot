@@ -2,8 +2,10 @@
 
 import { tool } from "ai";
 import { z } from "zod";
+import { resolvePerturbationName } from "./perturbation-catalog";
 
 const KINEPIK_API = "https://kinepik.org/api/0";
+const KINEPIK_LOG_REQUESTS = process.env.KINEPIK_LOG_REQUESTS === "true";
 
 function withTimeout(ms: number): { signal: AbortSignal; clear: () => void } {
   const controller = new AbortController();
@@ -35,6 +37,11 @@ async function fetchKseaForPerturbation(
 
   const { signal, clear } = withTimeout(15000);
   try {
+    if (KINEPIK_LOG_REQUESTS) {
+      console.log(
+        `[kinepik-request] tool=comparePerturbations endpoint=/perturbation/KSEA kinase_ids=${ids} perturbation=${perturbation} cell_line=${cellLine} weighted=true autophosphorylation=exclude phosphosite_confidence=1 url=${url}`,
+      );
+    }
     const res = await fetch(url, {
       headers: { Accept: "application/json" },
       signal,
@@ -55,16 +62,17 @@ async function fetchKseaForPerturbation(
         if (typeof kinaseData !== "object" || kinaseData === null) continue;
         const pertData = (kinaseData as Record<string, unknown>)[perturbation];
         if (typeof pertData !== "object" || pertData === null) continue;
-        const n = typeof pertData.n === "number" ? pertData.n : 0;
+        const pertRecord = pertData as Record<string, unknown>;
+        const n = typeof pertRecord.n === "number" ? pertRecord.n : 0;
         if (n === 0) continue;
         const zScore =
-          typeof pertData.WeightedZ_score === "number"
-            ? pertData.WeightedZ_score
-            : typeof pertData.z_score === "number"
-              ? pertData.z_score
+          typeof pertRecord.WeightedZ_score === "number"
+            ? pertRecord.WeightedZ_score
+            : typeof pertRecord.z_score === "number"
+              ? pertRecord.z_score
               : NaN;
         const pValue =
-          typeof pertData.p_value === "number" ? pertData.p_value : NaN;
+          typeof pertRecord.p_value === "number" ? pertRecord.p_value : NaN;
         if (Number.isFinite(zScore)) {
           const absZ = Math.abs(zScore);
           const direction =
@@ -126,29 +134,58 @@ export const comparePerturbationsTool = tool({
   }) => {
     const comparison: Record<string, PerturbationResult[]> = {};
     const errors: string[] = [];
+    const resolvedPerturbations: string[] = [];
+    const invalidPerturbations: Array<{ input: string; suggestions: string[] }> = [];
 
     await Promise.all(
       perturbations.map(async (perturbation) => {
+        const resolution = resolvePerturbationName(perturbation);
+        if (!resolution.matched || !resolution.resolvedName) {
+          invalidPerturbations.push({
+            input: perturbation,
+            suggestions: resolution.suggestions,
+          });
+          comparison[perturbation] = [];
+          return;
+        }
+
+        const resolvedPerturbation = resolution.resolvedName;
+        resolvedPerturbations.push(resolvedPerturbation);
+        if (resolution.autoCorrected) {
+          errors.push(
+            `Perturbation name normalized from ${perturbation} to ${resolvedPerturbation}.`,
+          );
+        }
+
         try {
-          comparison[perturbation] = await fetchKseaForPerturbation(
+          comparison[resolvedPerturbation] = await fetchKseaForPerturbation(
             uniprotIds,
-            perturbation,
+            resolvedPerturbation,
             cellLine,
           );
         } catch (err) {
-          errors.push(`KSEA ${perturbation}: ${(err as Error).message}`);
-          comparison[perturbation] = [];
+          errors.push(`KSEA ${resolvedPerturbation}: ${(err as Error).message}`);
+          comparison[resolvedPerturbation] = [];
         }
       }),
     );
 
+    for (const invalid of invalidPerturbations) {
+      errors.push(
+        invalid.suggestions.length > 0
+          ? `Unknown perturbation ${invalid.input}. Closest matches: ${invalid.suggestions.join(", ")}.`
+          : `Unknown perturbation ${invalid.input}.`,
+      );
+    }
+
     return {
       cellLine,
       uniprotIds,
-      perturbations,
+      perturbations: resolvedPerturbations,
       comparison,
       errors,
-      note: `Compared ${perturbations.length} perturbation(s) in ${cellLine} for ${uniprotIds.join(", ")}.`,
+      invalidPerturbations,
+      note: `Compared ${resolvedPerturbations.length} perturbation(s) in ${cellLine} for ${uniprotIds.join(", ")}.`,
     };
   },
 });

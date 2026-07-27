@@ -6,7 +6,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { ArrowUp, Loader2, AlertCircle, PanelRight } from "lucide-react";
-import { useChatStore, type StoredMessage } from "@/lib/client/chat-store";
+import {
+  useChatStore,
+  type StoredMessage,
+  type StoredVisualizationAsset,
+  type ToolCall,
+  type VisualizationAsset,
+} from "@/lib/client/chat-store";
 import { ChatMessage } from "./chat-message";
 import { ChatSidebar } from "./chat-sidebar";
 import { NetworkPanel } from "@/components/network/network-panel";
@@ -36,6 +42,68 @@ function extractNetworkDataFromParts(
   return null;
 }
 
+function extractVisualizationAssetsFromParts(
+  parts: { type: string; [key: string]: unknown }[],
+): VisualizationAsset[] {
+  const images: VisualizationAsset[] = [];
+  for (const part of parts) {
+    if (
+      typeof part.type === "string" &&
+      part.type.startsWith("tool-generateVisualization") &&
+      (part as { state?: string }).state === "output-available"
+    ) {
+      const output = (part as {
+        output?: {
+          imageUrl?: string;
+          title?: string;
+          type?: string;
+          downloadName?: string;
+        };
+      }).output;
+      if (typeof output?.imageUrl === "string" && output.imageUrl) {
+        images.push({
+          url: output.imageUrl,
+          title: output.title,
+          type: output.type,
+          downloadName: output.downloadName,
+        });
+      }
+    }
+  }
+  return images;
+}
+
+function normalizeVisualizationAssets(
+  images: StoredVisualizationAsset[] | undefined,
+): VisualizationAsset[] {
+  return (images ?? [])
+    .map((image) =>
+      typeof image === "string"
+        ? { url: image }
+        : image && typeof image.url === "string"
+          ? image
+          : null,
+    )
+    .filter((image): image is VisualizationAsset => Boolean(image?.url));
+}
+
+function extractToolCallsFromParts(
+  parts: { type: string; [key: string]: unknown }[],
+): ToolCall[] {
+  return parts
+    .filter(
+      (part) =>
+        typeof part.type === "string" &&
+        part.type.startsWith("tool-") &&
+        (part as { state?: string }).state === "output-available",
+    )
+    .map((part) => ({
+      toolName: part.type.replace(/^tool-/, ""),
+      input: (part as { input?: unknown }).input,
+      output: (part as { output?: unknown }).output,
+    }));
+}
+
 function toStoredMessages(
   msgs: ReturnType<typeof useChat>["messages"],
 ): StoredMessage[] {
@@ -46,7 +114,26 @@ function toStoredMessages(
         (p): p is { type: "text"; text: string } => p.type === "text",
       );
       const content = parts.map((p) => p.text).join("");
-      return { id: m.id, role: m.role as "user" | "assistant", content, parts };
+      const liveImages = extractVisualizationAssetsFromParts(
+        (m.parts ?? []) as { type: string; [key: string]: unknown }[],
+      );
+      const liveToolCalls = extractToolCallsFromParts(
+        (m.parts ?? []) as { type: string; [key: string]: unknown }[],
+      );
+      const storedImages = normalizeVisualizationAssets(
+        (m as { images?: StoredVisualizationAsset[] }).images,
+      );
+      const storedToolCalls = (m as { toolCalls?: ToolCall[] }).toolCalls ?? [];
+      const images = liveImages.length > 0 ? liveImages : storedImages;
+      const toolCalls = liveToolCalls.length > 0 ? liveToolCalls : storedToolCalls;
+      return {
+        id: m.id,
+        role: m.role as "user" | "assistant",
+        content,
+        parts,
+        images,
+        toolCalls,
+      };
     });
 }
 
@@ -58,6 +145,8 @@ function fromStoredMessages(stored: StoredMessage[]) {
     parts: m.parts?.length
       ? m.parts
       : [{ type: "text" as const, text: m.content }],
+    images: normalizeVisualizationAssets(m.images),
+    toolCalls: m.toolCalls ?? [],
     createdAt: new Date(),
   }));
 }
@@ -277,7 +366,7 @@ export function ChatInterface() {
                   transition={{ delay: 0.25, duration: 0.4 }}
                   className="text-muted-foreground text-center text-lg max-w-lg mt-6 mb-8"
                 >
-                  Powered by Biochatter for kinase identification, analysis and
+                  Powered by an OpenAI-compatible model for kinase identification, analysis and
                   visualisation
                 </motion.p>
               </motion.div>
@@ -306,6 +395,12 @@ export function ChatInterface() {
                   const msgNetworkData =
                     extractNetworkDataFromParts(parts) ??
                     (isLastAssistant ? activeNetworkData : null);
+                  const visualizationImages = extractVisualizationAssetsFromParts(parts);
+                  const liveToolCalls = extractToolCallsFromParts(parts);
+                  const restoredImages = normalizeVisualizationAssets(
+                    (message as { images?: StoredVisualizationAsset[] }).images,
+                  );
+                  const restoredToolCalls = (message as { toolCalls?: ToolCall[] }).toolCalls ?? [];
                   return (
                     <ChatMessage
                       key={message.id}
@@ -314,6 +409,14 @@ export function ChatInterface() {
                         role: message.role as "user" | "assistant",
                         content: textContent,
                         timestamp: Date.now(),
+                        images:
+                          visualizationImages.length > 0
+                            ? visualizationImages
+                            : restoredImages,
+                        toolCalls:
+                          liveToolCalls.length > 0
+                            ? liveToolCalls
+                            : restoredToolCalls,
                         isStreaming:
                           isLoading &&
                           index === messages.length - 1 &&

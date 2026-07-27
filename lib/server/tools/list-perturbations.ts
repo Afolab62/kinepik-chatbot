@@ -3,6 +3,7 @@
 
 import { tool } from "ai";
 import { z } from "zod";
+import { getKnownPerturbations } from "./perturbation-catalog";
 
 const KINEPIK_API = "https://kinepik.org/api/0";
 
@@ -25,6 +26,18 @@ export const listPerturbationsTool = tool({
   }: {
     type?: "small_molecule" | "knockout" | "all";
   }) => {
+    const catalogNames = getKnownPerturbations();
+
+    if (type === "small_molecule") {
+      return {
+        type,
+        count: catalogNames.length,
+        perturbations: catalogNames,
+        source: "local_catalog",
+        note: `These are the exact names to use in the analyzeKinase tool's perturbation field.`,
+      };
+    }
+
     const url =
       type === "all"
         ? `${KINEPIK_API}/perturbation/all`
@@ -63,6 +76,7 @@ export const listPerturbationsTool = tool({
       type,
       count: names.length,
       perturbations: names,
+      source: "api",
       note: `These are the exact names to use in the analyzeKinase tool's perturbation field.`,
     };
   },

@@ -1,16 +1,12 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import "./globals.css";
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
-
 export const metadata: Metadata = {
   title: "KINEPIK",
   description:
-    "Interactive AI chatbot for KINEPIK kinase identification analysis, powered by Biochatter conversational AI framework",
+    "Interactive AI chatbot for KINEPIK kinase identification analysis, powered by an OpenAI-compatible conversational assistant",
   generator: "js.app",
   icons: {
     icon: "/kinepik-sidebar-logo.png",

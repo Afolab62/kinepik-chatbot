@@ -188,7 +188,7 @@ export const SYSTEM_PROMPT = `
 
 // app/api/chat/route.ts
 const result = streamText({
-  model: getBiochatterModel(),
+  model: getOpenAIModel(),
   system: SYSTEM_PROMPT + serverNote, // ← Injected every request
   messages: modelMessages,
   tools: chatTools,
@@ -614,7 +614,7 @@ export async function POST(req: Request) {
 
   // Call Vercel AI SDK streamText
   const result = streamText({
-    model: getBiochatterModel(),  // OpenAI or BioChatter server
+    model: getOpenAIModel(),  // OpenAI-compatible server
 
     system: SYSTEM_PROMPT + serverNote,  // ← The manual
 

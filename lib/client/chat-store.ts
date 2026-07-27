@@ -5,13 +5,30 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { NetworkData } from "@/lib/server/tools/get-kinase-network";
 
+export interface ToolCall {
+  toolName: string;
+  timestamp?: string;
+  input?: unknown;
+  output?: unknown;
+}
+
+export interface VisualizationAsset {
+  url: string;
+  title?: string;
+  type?: string;
+  downloadName?: string;
+}
+
+export type StoredVisualizationAsset = string | VisualizationAsset;
+
 export interface Message {
   id: string;
   role: "user" | "assistant" | "system";
   content: string;
   timestamp: number;
-  images?: string[];
+  images?: VisualizationAsset[];
   isStreaming?: boolean;
+  toolCalls?: ToolCall[];
 }
 
 export interface StoredMessage {
@@ -19,6 +36,8 @@ export interface StoredMessage {
   role: "user" | "assistant";
   content: string;
   parts?: { type: "text"; text: string }[];
+  images?: StoredVisualizationAsset[];
+  toolCalls?: ToolCall[];
 }
 
 export interface Conversation {

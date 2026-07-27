@@ -1,12 +1,12 @@
 # KINEPIK
 
-An AI-powered chat interface for kinase identification and phosphoproteomics analysis, built with Next.js and powered by [Biochatter](https://biochatter.org/) / OpenAI-compatible APIs.
+An AI-powered chat interface for kinase identification and phosphoproteomics analysis, built with Next.js and powered by OpenAI-compatible APIs.
 
 ---
 
 ## Features
 
-- **AI Chat** — Conversational interface backed by Biochatter or any OpenAI-compatible endpoint
+- **AI Chat** — Conversational interface backed by an OpenAI-compatible endpoint
 - **KINEPIK Analysis** — Identify candidate kinases from phosphorylation site sequences
 - **Motif Analysis** — Pattern-match phosphopeptide sequences against known kinase motifs
 - **Kinase Family Browser** — Explore AGC, CAMK, CK1, CMGC, STE, TK, and TKL families
@@ -43,13 +43,12 @@ cp .env.local.example .env.local
 Edit `.env.local`:
 
 ```env
-# Required — your OpenAI API key (or Biochatter server key)
+# Required — your OpenAI API key
 OPENAI_API_KEY=sk-...
 
-# Optional — point to a self-hosted Biochatter / OpenAI-compatible server
-# BIOCHATTER_API_URL=http://localhost:8000/v1
-# BIOCHATTER_API_KEY=your-key-if-needed
-# BIOCHATTER_MODEL=gpt-4o
+# Optional — point to a self-hosted OpenAI-compatible server
+# OPENAI_BASE_URL=http://localhost:8000/v1
+# OPENAI_MODEL=gpt-4o
 ```
 
 ### 3. Start the development server
@@ -92,7 +91,7 @@ Open [http://localhost:3000](http://localhost:3000).
 │   ├── types/
 │   │   └── kinepik.ts               # Shared TypeScript interfaces
 │   ├── server/                      # Server-only code (never imported by client)
-│   │   ├── biochatter.ts            # AI provider client & configuration
+│   │   ├── openai.ts                # AI provider client & configuration
 │   │   ├── kinepik-engine.ts        # Kinase analysis logic & data
 │   │   ├── prompts.ts               # SYSTEM_PROMPT constant
 │   │   └── tools/
@@ -192,10 +191,9 @@ curl "http://localhost:3000/api/kinepik?query=CDK+substrate"
 
 | Variable             | Default                        | Description                               |
 | -------------------- | ------------------------------ | ----------------------------------------- |
-| `OPENAI_API_KEY`     | —                              | OpenAI API key (or Biochatter server key) |
-| `BIOCHATTER_API_URL` | OpenAI default                 | Base URL for an OpenAI-compatible server  |
-| `BIOCHATTER_API_KEY` | Falls back to `OPENAI_API_KEY` | Key for the custom server                 |
-| `BIOCHATTER_MODEL`   | `gpt-4o`                       | Model ID to use                           |
+| `OPENAI_API_KEY`     | —                              | OpenAI API key                            |
+| `OPENAI_BASE_URL`    | OpenAI default                 | Base URL for an OpenAI-compatible server  |
+| `OPENAI_MODEL`       | `gpt-5.1-turbo`                | Model ID to use                           |
 
 ---
 

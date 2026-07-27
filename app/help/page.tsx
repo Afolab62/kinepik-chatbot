@@ -12,7 +12,6 @@ import {
   ExternalLink,
   ChevronRight,
   Database,
-  Network,
   FlaskConical,
   FileText,
   Beaker,
@@ -452,48 +451,50 @@ export default function HelpPage() {
                 Suggested query patterns
               </h2>
               <p className="text-sm text-muted-foreground mb-4">
-                Use these question templates to get sensible KSEA, kinase activity,
-                and combination-drug answers from the assistant.
+                Use these question templates to get sensible KSEA, kinase
+                activity, and combination-drug answers from the assistant.
               </p>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="p-4 bg-muted rounded-lg border border-border">
                   <p className="text-xs font-semibold text-foreground mb-2">
-                    1. What happens when {"{cell line}"} is treated with {"{drug}"}?
+                    1. What happens when {"{cell line}"} is treated with{" "}
+                    {"{drug}"}?
                   </p>
                   <code className="text-xs text-foreground whitespace-pre-wrap">
-                    What happens when MCF7 cells are treated with AZD3759?
-                    
-                    What happens when NTERA2 cells are treated with Dasatinib?
+                    What happens when MCF7 cells are treated with AZD3759? What
+                    happens when NTERA2 cells are treated with Dasatinib?
                   </code>
                 </div>
                 <div className="p-4 bg-muted rounded-lg border border-border">
                   <p className="text-xs font-semibold text-foreground mb-2">
-                    2. What effect does {"{drug}"} have on the activity of {"{kinase}"}?
+                    2. What effect does {"{drug}"} have on the activity of{" "}
+                    {"{kinase}"}?
                   </p>
                   <code className="text-xs text-foreground whitespace-pre-wrap">
-                    What effect does AZD3759 have on mTOR activity in MCF7?
-                    
-                    How does Dasatinib affect AKT1 in NTERA2?
+                    What effect does AZD3759 have on mTOR activity in MCF7? How
+                    does Dasatinib affect AKT1 in NTERA2?
                   </code>
                 </div>
                 <div className="p-4 bg-muted rounded-lg border border-border">
                   <p className="text-xs font-semibold text-foreground mb-2">
-                    3. Why does {"{kinase}"} activity reduce when {"{cell line}"} is treated with {"{drug}"}?
+                    3. Why does {"{kinase}"} activity reduce when{" "}
+                    {"{cell line}"} is treated with {"{drug}"}?
                   </p>
                   <code className="text-xs text-foreground whitespace-pre-wrap">
-                    Why does mTOR activity reduce when MCF7 is treated with AZD3759?
-                    
-                    Why does AKT1 get inhibited when NTERA2 is treated with Dasatinib?
+                    Why does mTOR activity reduce when MCF7 is treated with
+                    AZD3759? Why does AKT1 get inhibited when NTERA2 is treated
+                    with Dasatinib?
                   </code>
                 </div>
                 <div className="p-4 bg-muted rounded-lg border border-border">
                   <p className="text-xs font-semibold text-foreground mb-2">
-                    4. What would happen if {"{cell line}"} was treated with {"{drug A}"} and {"{drug B}"}?
+                    4. What would happen if {"{cell line}"} was treated with{" "}
+                    {"{drug A}"} and {"{drug B}"}?
                   </p>
                   <code className="text-xs text-foreground whitespace-pre-wrap">
-                    What would happen if MCF7 was treated with both AZD3759 and Dasatinib?
-                    
-                    What is the combined effect of AZD3759 and Gefitinib in HL60?
+                    What would happen if MCF7 was treated with both AZD3759 and
+                    Dasatinib? What is the combined effect of AZD3759 and
+                    Gefitinib in HL60?
                   </code>
                 </div>
               </div>

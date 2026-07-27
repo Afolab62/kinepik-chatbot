@@ -14,3 +14,18 @@ next.user-config.*
 node_modules
 .next/
 .DS_Store
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# Python caches and local plotting cache
+__pycache__/
+*.py[cod]
+.matplotlib_cache/
+
+# Generated local visualizations
+public/visualizations/*.png
+public/visualizations/*.svg
+
+# Windows local shortcut artifacts
+*.lnk
