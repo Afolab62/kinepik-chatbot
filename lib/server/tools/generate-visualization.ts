@@ -4,13 +4,17 @@ import { spawnSync } from "child_process";
 import { mkdirSync, writeFileSync } from "fs";
 import path from "path";
 
-const SCRIPT_PATH = path.join(process.cwd(), "lib/server/tools/visualisations.py");
+const SCRIPT_PATH = path.join(
+  process.cwd(),
+  "lib/server/tools/visualisations.py",
+);
 const OUTPUT_DIR = path.join(process.cwd(), "public/visualizations");
 
 function getPythonCommand(): string | null {
-  const candidates = process.platform === "win32"
-    ? ["py", "python", "python3"]
-    : ["python3", "python"];
+  const candidates =
+    process.platform === "win32"
+      ? ["py", "python", "python3"]
+      : ["python3", "python"];
 
   for (const candidate of candidates) {
     try {
@@ -80,8 +84,12 @@ function generateConnectivityHeatmapSvg(params: {
   }));
 
   indexed.sort((a, b) => {
-    const aRank = rowsOrder.includes(a.family) ? rowsOrder.indexOf(a.family) : rowsOrder.length;
-    const bRank = rowsOrder.includes(b.family) ? rowsOrder.indexOf(b.family) : rowsOrder.length;
+    const aRank = rowsOrder.includes(a.family)
+      ? rowsOrder.indexOf(a.family)
+      : rowsOrder.length;
+    const bRank = rowsOrder.includes(b.family)
+      ? rowsOrder.indexOf(b.family)
+      : rowsOrder.length;
     if (aRank !== bRank) return aRank - bRank;
     if (b.degree !== a.degree) return b.degree - a.degree;
     return a.name.localeCompare(b.name);
@@ -118,7 +126,8 @@ function generateConnectivityHeatmapSvg(params: {
         rects.push(
           `<rect x="${x}" y="${y}" width="${cellW - 2}" height="${cellH - 2}" rx="4" fill="${fill}" stroke="#ffffff" />`,
         );
-        const textColor = entry.degree > min + (max - min) * 0.55 ? "#ffffff" : "#111827";
+        const textColor =
+          entry.degree > min + (max - min) * 0.55 ? "#ffffff" : "#111827";
         texts.push(
           `<text x="${x + (cellW - 2) / 2}" y="${y + cellH / 2 + 4}" text-anchor="middle" font-size="12" font-weight="700" fill="${textColor}">${entry.degree}</text>`,
         );
@@ -172,7 +181,10 @@ export const generateVisualizationTool = tool({
       "connectivity-heatmap",
       "network",
     ]),
-    data: z.any().optional().describe("Structured chart data, typically a list of rows or a matrix."),
+    data: z
+      .any()
+      .optional()
+      .describe("Structured chart data, typically a list of rows or a matrix."),
     perturbation: z.string().optional(),
     direction: z.enum(["positive", "negative"]).optional(),
     title: z.string().optional(),
@@ -267,7 +279,9 @@ export const generateVisualizationTool = tool({
     }
 
     const imagePath = result.stdout?.trim().split(/\s+/).pop() || "";
-    const normalizedPath = imagePath.startsWith("/") ? imagePath : `/${imagePath}`;
+    const normalizedPath = imagePath.startsWith("/")
+      ? imagePath
+      : `/${imagePath}`;
     const title = params.title || "KINEPIK visualization";
     const type = params.type;
     const downloadName = `${slugify(title || type || "kinepik-visualization") || "kinepik-visualization"}.png`;

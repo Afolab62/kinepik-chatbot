@@ -9,7 +9,8 @@ function assert(condition: unknown, message: string): void {
 }
 
 function checkMalformedPayloadParsing() {
-  const malformed = '{"value":[{"P00533":{"Gefitinib":{"WeightedZ_score":NaN,"p_value":Infinity,"n":3}}}],"Count":1}';
+  const malformed =
+    '{"value":[{"P00533":{"Gefitinib":{"WeightedZ_score":NaN,"p_value":Infinity,"n":3}}}],"Count":1}';
 
   const parsedAnalyze = parseAnalyzeKinasePayload(malformed) as {
     value?: Array<Record<string, unknown>>;
@@ -18,13 +19,21 @@ function checkMalformedPayloadParsing() {
     value?: Array<Record<string, unknown>>;
   };
 
-  assert(Array.isArray(parsedAnalyze.value), "analyze-kinase parser should recover malformed payload");
-  assert(Array.isArray(parsedTopAffected.value), "top-affected parser should recover malformed payload");
+  assert(
+    Array.isArray(parsedAnalyze.value),
+    "analyze-kinase parser should recover malformed payload",
+  );
+  assert(
+    Array.isArray(parsedTopAffected.value),
+    "top-affected parser should recover malformed payload",
+  );
 }
 
 function checkTransportErrorFallback() {
   const msg = toUserFacingErrorMessage(
-    new Error("AI_RetryError: Cannot connect to API: session has been destroyed"),
+    new Error(
+      "AI_RetryError: Cannot connect to API: session has been destroyed",
+    ),
     [],
   );
   assert(

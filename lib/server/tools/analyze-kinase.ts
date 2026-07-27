@@ -144,7 +144,7 @@ async function fetchKseaScores(
           // weighted=true usually returns WeightedZ_score, but some payloads
           // only include z_score. Fall back so valid records are not dropped.
           const zScore = useWeightedZScore
-            ? pertData.WeightedZ_score ?? pertData.z_score
+            ? (pertData.WeightedZ_score ?? pertData.z_score)
             : pertData.z_score;
           const pValue = pertData.p_value;
           if (typeof zScore === "number" && !isNaN(zScore)) {
@@ -194,7 +194,7 @@ export const analyzeKinaseTool = tool({
       .boolean()
       .optional()
       .describe(
-        'Use weighted z-scores (default: true). When false, returns unweighted z-scores. Weighted scores incorporate substrate quality weights; unweighted scores treat all substrates equally.',
+        "Use weighted z-scores (default: true). When false, returns unweighted z-scores. Weighted scores incorporate substrate quality weights; unweighted scores treat all substrates equally.",
       ),
   }),
   execute: async ({

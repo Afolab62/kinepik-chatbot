@@ -13,8 +13,15 @@ import {
 import { SYSTEM_PROMPT } from "@/lib/server/prompts";
 import { chatTools } from "@/lib/server/tools";
 import { checkRateLimit } from "@/lib/server/security/rate-limit";
-import { sanitizeForLog, sanitizeTextForLog } from "@/lib/server/security/log-sanitizer";
-import { recordRequestOutcome, startTrace, trackError } from "@/lib/server/ops/monitoring";
+import {
+  sanitizeForLog,
+  sanitizeTextForLog,
+} from "@/lib/server/security/log-sanitizer";
+import {
+  recordRequestOutcome,
+  startTrace,
+  trackError,
+} from "@/lib/server/ops/monitoring";
 
 const DEMO_MODE = process.env.DEMO_MODE === "true";
 
@@ -33,12 +40,17 @@ function getClientIdentifier(req: Request): string {
   return `chat:${ip}`;
 }
 
-function parsePositiveIntEnv(value: string | undefined, fallback: number): number {
+function parsePositiveIntEnv(
+  value: string | undefined,
+  fallback: number,
+): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
 }
 
-function buildToolContextSummary(toolMetadata: Array<{ toolName: string; output: unknown }>): string {
+function buildToolContextSummary(
+  toolMetadata: Array<{ toolName: string; output: unknown }>,
+): string {
   if (toolMetadata.length === 0) {
     return "";
   }
@@ -94,8 +106,14 @@ export async function POST(req: Request) {
 
   try {
     const rateLimit = checkRateLimit(getClientIdentifier(req), {
-      windowMs: parsePositiveIntEnv(process.env.CHAT_RATE_LIMIT_WINDOW_MS, 60_000),
-      maxRequests: parsePositiveIntEnv(process.env.CHAT_RATE_LIMIT_MAX_REQUESTS, 30),
+      windowMs: parsePositiveIntEnv(
+        process.env.CHAT_RATE_LIMIT_WINDOW_MS,
+        60_000,
+      ),
+      maxRequests: parsePositiveIntEnv(
+        process.env.CHAT_RATE_LIMIT_MAX_REQUESTS,
+        30,
+      ),
     });
     if (!rateLimit.allowed) {
       recordRequestOutcome({
@@ -124,7 +142,10 @@ export async function POST(req: Request) {
         route: "/api/chat",
       });
       return Response.json(
-        { error: "Invalid request body: messages[] is required.", requestId: trace.requestId },
+        {
+          error: "Invalid request body: messages[] is required.",
+          requestId: trace.requestId,
+        },
         { status: 400 },
       );
     }
@@ -138,7 +159,9 @@ export async function POST(req: Request) {
           : "[structured content]"
       }"`,
     );
-    console.log(`[chat-api] requestId=${trace.requestId} messageCount=${messages.length}`);
+    console.log(
+      `[chat-api] requestId=${trace.requestId} messageCount=${messages.length}`,
+    );
 
     // --- Demo mode: stream a canned response without any API key ---
     if (DEMO_MODE) {
@@ -165,7 +188,10 @@ export async function POST(req: Request) {
         durationMs: Date.now() - trace.startedAt,
         route: "/api/chat",
       });
-      return Response.json({ error, requestId: trace.requestId }, { status: 500 });
+      return Response.json(
+        { error, requestId: trace.requestId },
+        { status: 500 },
+      );
     }
 
     const webSearchTools = getWebSearchTools();
@@ -177,7 +203,9 @@ export async function POST(req: Request) {
 
     // Wrap each tool to log calls and capture metadata
     const wrappedTools: Record<string, any> = {};
-    const tools = webSearchTools ? { ...chatTools, ...webSearchTools } : chatTools;
+    const tools = webSearchTools
+      ? { ...chatTools, ...webSearchTools }
+      : chatTools;
 
     for (const [toolName, tool] of Object.entries(tools)) {
       const originalExecute = tool.execute as
@@ -208,7 +236,9 @@ export async function POST(req: Request) {
               extra: { toolName, input: sanitizeForLog(input) },
               error: err,
             });
-            console.error(`[tool-error] requestId=${trace.requestId} tool=${toolName} error=${err}`);
+            console.error(
+              `[tool-error] requestId=${trace.requestId} tool=${toolName} error=${err}`,
+            );
             throw err;
           }
         },
@@ -228,13 +258,16 @@ export async function POST(req: Request) {
         console.log(
           `[tokens] requestId=${trace.requestId} input=${totalUsage.inputTokens} output=${totalUsage.outputTokens} total=${totalUsage.totalTokens}`,
         );
-        console.log(`[tools-used] requestId=${trace.requestId} tools=${toolMetadata.map((t) => t.toolName).join(", ") || "none"}`);
+        console.log(
+          `[tools-used] requestId=${trace.requestId} tools=${toolMetadata.map((t) => t.toolName).join(", ") || "none"}`,
+        );
 
         if (requireToolGrounding && toolMetadata.length === 0) {
           trackError({
             requestId: trace.requestId,
             stage: "tool-boundary",
-            error: "No tool calls made for a query that required tool grounding.",
+            error:
+              "No tool calls made for a query that required tool grounding.",
           });
         }
 

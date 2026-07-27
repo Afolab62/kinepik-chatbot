@@ -38,10 +38,7 @@ export function parseKinepikJson(raw: string): unknown {
   }
 }
 
-function timeoutForBatchSize(
-  kinaseCount: number,
-  attempt: number,
-): number {
+function timeoutForBatchSize(kinaseCount: number, attempt: number): number {
   const base = 15000 + kinaseCount * 9000;
   const multiplier = attempt === 1 ? 1 : 1.35;
   return Math.min(180000, Math.floor(base * multiplier));

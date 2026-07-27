@@ -20,7 +20,10 @@ const recentErrors: CapturedError[] = [];
 let lastAlertAt = 0;
 
 function trimWindow(now: number) {
-  while (requestMetrics.length > 0 && requestMetrics[0].timestamp < now - WINDOW_MS) {
+  while (
+    requestMetrics.length > 0 &&
+    requestMetrics[0].timestamp < now - WINDOW_MS
+  ) {
     requestMetrics.shift();
   }
   while (recentErrors.length > 50) {
@@ -71,7 +74,8 @@ export function trackError(input: {
   extra?: unknown;
   error: unknown;
 }) {
-  const message = input.error instanceof Error ? input.error.message : String(input.error);
+  const message =
+    input.error instanceof Error ? input.error.message : String(input.error);
   recentErrors.push({
     timestamp: new Date().toISOString(),
     requestId: input.requestId,

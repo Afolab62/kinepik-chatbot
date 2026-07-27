@@ -3,7 +3,15 @@
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Bot, Copy, Check, Share2, ImageIcon, Download, ExternalLink } from "lucide-react";
+import {
+  Bot,
+  Copy,
+  Check,
+  Share2,
+  ImageIcon,
+  Download,
+  ExternalLink,
+} from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -19,7 +27,12 @@ interface ChatMessageProps {
   onViewNetwork?: () => void;
 }
 
-export function ChatMessage({ message, index, networkData, onViewNetwork }: ChatMessageProps) {
+export function ChatMessage({
+  message,
+  index,
+  networkData,
+  onViewNetwork,
+}: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
   const isUser = message.role === "user";
   const hasVisualizations = !isUser && Boolean(message.images?.length);
@@ -89,20 +102,30 @@ export function ChatMessage({ message, index, networkData, onViewNetwork }: Chat
                 components={{
                   table: ({ children }) => (
                     <div className="my-3 overflow-x-auto rounded-lg border border-border/70">
-                      <table className="min-w-full border-collapse text-xs">{children}</table>
+                      <table className="min-w-full border-collapse text-xs">
+                        {children}
+                      </table>
                     </div>
                   ),
                   thead: ({ children }) => (
-                    <thead className="bg-muted/60 text-foreground">{children}</thead>
+                    <thead className="bg-muted/60 text-foreground">
+                      {children}
+                    </thead>
                   ),
                   tr: ({ children }) => (
-                    <tr className="border-b border-border/60 last:border-b-0">{children}</tr>
+                    <tr className="border-b border-border/60 last:border-b-0">
+                      {children}
+                    </tr>
                   ),
                   th: ({ children }) => (
-                    <th className="px-3 py-2 text-left font-semibold">{children}</th>
+                    <th className="px-3 py-2 text-left font-semibold">
+                      {children}
+                    </th>
                   ),
                   td: ({ children }) => (
-                    <td className="px-3 py-2 align-top text-foreground/90">{children}</td>
+                    <td className="px-3 py-2 align-top text-foreground/90">
+                      {children}
+                    </td>
                   ),
                   img: ({ src, alt }) => {
                     if (!src) return null;
@@ -119,7 +142,9 @@ export function ChatMessage({ message, index, networkData, onViewNetwork }: Chat
                   },
                 }}
               >
-                {cleanContent(message.content, { stripVisualizationMarkdown: hasVisualizations })}
+                {cleanContent(message.content, {
+                  stripVisualizationMarkdown: hasVisualizations,
+                })}
               </ReactMarkdown>
             </div>
           )}
@@ -145,12 +170,16 @@ export function ChatMessage({ message, index, networkData, onViewNetwork }: Chat
             </div>
           )}
 
-          {!isUser && message.content && /visuali[sz]e|chart|plot|heatmap|radar/i.test(message.content) && !message.images?.length && (
-            <div className="mt-2 flex items-center gap-2 rounded-md border border-dashed border-border/60 bg-background/40 px-2.5 py-2 text-[11px] text-muted-foreground">
-              <ImageIcon className="h-3.5 w-3.5" />
-              Visualisation requested — the assistant can render a chart once the relevant KINEPIK data is available.
-            </div>
-          )}
+          {!isUser &&
+            message.content &&
+            /visuali[sz]e|chart|plot|heatmap|radar/i.test(message.content) &&
+            !message.images?.length && (
+              <div className="mt-2 flex items-center gap-2 rounded-md border border-dashed border-border/60 bg-background/40 px-2.5 py-2 text-[11px] text-muted-foreground">
+                <ImageIcon className="h-3.5 w-3.5" />
+                Visualisation requested — the assistant can render a chart once
+                the relevant KINEPIK data is available.
+              </div>
+            )}
 
           {/* API Transparency: Check for tool metadata in message */}
           {!isUser && message.toolCalls && message.toolCalls.length > 0 && (
@@ -160,7 +189,10 @@ export function ChatMessage({ message, index, networkData, onViewNetwork }: Chat
               </summary>
               <div className="mt-2 space-y-2 p-2 bg-background/50 rounded border border-border/40">
                 {message.toolCalls.map((call, idx) => (
-                  <div key={idx} className="text-[10px] space-y-1 p-1.5 bg-muted/40 rounded border border-border/20">
+                  <div
+                    key={idx}
+                    className="text-[10px] space-y-1 p-1.5 bg-muted/40 rounded border border-border/20"
+                  >
                     <div className="font-mono font-bold text-accent">
                       ✓ {call.toolName}
                     </div>
@@ -184,18 +216,25 @@ export function ChatMessage({ message, index, networkData, onViewNetwork }: Chat
           )}
 
           {/* Hallucination warning: No tool calls made */}
-          {!isUser && 
-            message.content && 
-            message.content.length > 100 && 
-            !hasDataToolEvidence && 
-            /affected|kinase|activity|perturbation|drug|treatment/i.test(message.content) && (
-            <div className="mt-2 flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/5 px-2.5 py-2 text-[11px]">
-              <div className="text-yellow-600 dark:text-yellow-400 font-bold">⚠️</div>
-              <div className="text-yellow-700 dark:text-yellow-300">
-                <strong>No data tools were called.</strong> This response may be based on general knowledge rather than live KINEPIK data. Consider asking a more specific question or request a visualization to trigger data retrieval.
+          {!isUser &&
+            message.content &&
+            message.content.length > 100 &&
+            !hasDataToolEvidence &&
+            /affected|kinase|activity|perturbation|drug|treatment/i.test(
+              message.content,
+            ) && (
+              <div className="mt-2 flex items-start gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/5 px-2.5 py-2 text-[11px]">
+                <div className="text-yellow-600 dark:text-yellow-400 font-bold">
+                  ⚠️
+                </div>
+                <div className="text-yellow-700 dark:text-yellow-300">
+                  <strong>No data tools were called.</strong> This response may
+                  be based on general knowledge rather than live KINEPIK data.
+                  Consider asking a more specific question or request a
+                  visualization to trigger data retrieval.
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           {/* Streaming indicator */}
           {message.isStreaming && (
@@ -266,14 +305,19 @@ function VisualizationCard({
   index: number;
 }) {
   const title = image.title?.trim() || `Generated visualisation ${index + 1}`;
-  const typeLabel = image.type ? image.type.replace(/-/g, " ").toLowerCase() : "chart";
-  const downloadName = image.downloadName || buildDownloadName(image.url, title);
+  const typeLabel = image.type
+    ? image.type.replace(/-/g, " ").toLowerCase()
+    : "chart";
+  const downloadName =
+    image.downloadName || buildDownloadName(image.url, title);
 
   return (
     <div>
       <div className="flex items-center justify-between gap-3 border-b border-border/60 bg-muted/30 px-4 py-3">
         <div className="min-w-0">
-          <div className="truncate text-sm font-medium text-foreground">{title}</div>
+          <div className="truncate text-sm font-medium text-foreground">
+            {title}
+          </div>
           <div className="mt-1 text-[12px] text-muted-foreground">
             {typeLabel}:
           </div>
@@ -392,7 +436,10 @@ function cleanContent(
     cleaned = cleaned
       .replace(/^!\[[^\]]*\]\([^\n]+\)\s*$/gm, "")
       .replace(/^\[!\[[^\]]*\]\([^\n]+\)\]\([^\n]+\)\s*$/gm, "")
-      .replace(/^\[(Download|Open)\]\([^\n]+\)\s*\[(Download|Open)\]\([^\n]+\)\s*$/gm, "")
+      .replace(
+        /^\[(Download|Open)\]\([^\n]+\)\s*\[(Download|Open)\]\([^\n]+\)\s*$/gm,
+        "",
+      )
       .replace(/^\[(Download|Open)\]\([^\n]+\)\s*$/gm, "")
       .replace(/^https?:\/\/[^\s]+$/gm, "")
       .replace(/\n\s*⚠️\s*/g, "\n")

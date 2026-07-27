@@ -148,8 +148,12 @@ function inferKinaseFamily(label: string): ConnectivityEntry["family"] {
   }
 
   if (
-    /^(EGFR|ERBB|FGFR|PDGFRA|PDGFRB|KDR|FLT|MET|AXL|ALK|RET|ROS1|INSR|IGF1R)/.test(upper) ||
-    /^(SRC|YES1|FYN|LYN|LCK|ABL1|ABL2|JAK1|JAK2|JAK3|TYK2|SYK|BTK|CSK|TEC)/.test(upper)
+    /^(EGFR|ERBB|FGFR|PDGFRA|PDGFRB|KDR|FLT|MET|AXL|ALK|RET|ROS1|INSR|IGF1R)/.test(
+      upper,
+    ) ||
+    /^(SRC|YES1|FYN|LYN|LCK|ABL1|ABL2|JAK1|JAK2|JAK3|TYK2|SYK|BTK|CSK|TEC)/.test(
+      upper,
+    )
   ) {
     return "TK";
   }

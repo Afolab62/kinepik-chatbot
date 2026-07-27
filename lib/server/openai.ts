@@ -1,6 +1,7 @@
 import { createOpenAI } from "@ai-sdk/openai";
 
-const OPENAI_API_URL = process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1";
+const OPENAI_API_URL =
+  process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY ?? "";
 const OPENAI_MODEL = process.env.OPENAI_MODEL ?? "gpt-4.1-mini";
 const ENABLE_WEB_SEARCH = process.env.ENABLE_WEB_SEARCH === "true";
@@ -39,7 +40,8 @@ export function validateApiKey(): { valid: boolean; error?: string } {
   if (!OPENAI_API_KEY) {
     return {
       valid: false,
-      error: "No API key configured. Set OPENAI_API_KEY in your .env.local file.",
+      error:
+        "No API key configured. Set OPENAI_API_KEY in your .env.local file.",
     };
   }
   return { valid: true };

@@ -1,4 +1,10 @@
-const REDACT_KEYS = [/key/i, /token/i, /secret/i, /password/i, /authorization/i];
+const REDACT_KEYS = [
+  /key/i,
+  /token/i,
+  /secret/i,
+  /password/i,
+  /authorization/i,
+];
 
 function shouldRedact(key: string): boolean {
   return REDACT_KEYS.some((pattern) => pattern.test(key));
