@@ -23,6 +23,8 @@ import {
   trackError,
 } from "@/lib/server/ops/monitoring";
 
+export const runtime = "nodejs";
+
 const DEMO_MODE = process.env.DEMO_MODE === "true";
 
 const KSEA_TOOL_REQUIRED_PATTERN =
