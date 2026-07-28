@@ -355,20 +355,20 @@ function generateConnectivityHeatmapSvg(params: {
   familyLabels?: string[];
   connectionCounts?: number[];
 }): { imageUrl: string; downloadName: string } {
-  const rows = normalizeRows({
+  const inputRows = normalizeRows({
     kinaseNames: params.kinaseNames,
     connectionCounts: params.connectionCounts,
     familyLabels: params.familyLabels,
   });
 
-  if (rows.length === 0) {
+  if (inputRows.length === 0) {
     throw new Error(
       "connectivity-heatmap requires equally sized kinaseNames and connectionCounts arrays.",
     );
   }
 
   const rowsOrder = ["AGC", "CAMK", "CK1", "CMGC", "STE", "TK", "TKL", "OTHER"];
-  const indexed = rows.map((row) => ({
+  const indexed = inputRows.map((row) => ({
     name: row.label,
     family: row.group || "OTHER",
     degree: row.value,
@@ -389,14 +389,14 @@ function generateConnectivityHeatmapSvg(params: {
   const activeRows = rowsOrder.filter((family) =>
     indexed.some((entry) => entry.family === family),
   );
-  const rows = activeRows.length > 0 ? activeRows : ["OTHER"];
+  const heatmapRows = activeRows.length > 0 ? activeRows : ["OTHER"];
 
   const cellW = 72;
   const cellH = 44;
   const left = 150;
   const top = 70;
   const width = left + indexed.length * cellW + 40;
-  const height = top + rows.length * cellH + 80;
+  const height = top + heatmapRows.length * cellH + 80;
 
   const min = Math.min(...indexed.map((item) => item.degree));
   const max = Math.max(...indexed.map((item) => item.degree));
@@ -404,7 +404,7 @@ function generateConnectivityHeatmapSvg(params: {
   const rects: string[] = [];
   const texts: string[] = [];
 
-  rows.forEach((family, rowIndex) => {
+  heatmapRows.forEach((family, rowIndex) => {
     const y = top + rowIndex * cellH;
     texts.push(
       `<text x="${left - 10}" y="${y + cellH / 2 + 4}" text-anchor="end" font-size="12" font-weight="700" fill="#111827">${escapeXml(family)}</text>`,
@@ -432,7 +432,7 @@ function generateConnectivityHeatmapSvg(params: {
 
   indexed.forEach((entry, colIndex) => {
     const x = left + colIndex * cellW + (cellW - 2) / 2;
-    const y = top + rows.length * cellH + 18;
+    const y = top + heatmapRows.length * cellH + 18;
     texts.push(
       `<text x="${x}" y="${y}" text-anchor="end" transform="rotate(-45 ${x} ${y})" font-size="11" fill="#374151">${escapeXml(entry.name)}</text>`,
     );

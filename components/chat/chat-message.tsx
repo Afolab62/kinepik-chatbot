@@ -128,7 +128,7 @@ export function ChatMessage({
                     </td>
                   ),
                   img: ({ src, alt }) => {
-                    if (!src) return null;
+                    if (!src || typeof src !== "string") return null;
                     return (
                       <Image
                         src={src}
