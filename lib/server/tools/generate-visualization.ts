@@ -124,12 +124,13 @@ function generateBarSvg(params: {
 
   const rows = params.rows.slice(0, 18);
   const maxAbs =
-    rows.length > 0
-      ? Math.max(...rows.map((r) => Math.abs(r.value)), 1)
-      : 1;
+    rows.length > 0 ? Math.max(...rows.map((r) => Math.abs(r.value)), 1) : 1;
 
   const barGap = 10;
-  const barH = Math.max(14, Math.floor((chartHeight - barGap * rows.length) / Math.max(rows.length, 1)));
+  const barH = Math.max(
+    14,
+    Math.floor((chartHeight - barGap * rows.length) / Math.max(rows.length, 1)),
+  );
 
   const elements: string[] = [];
   const axisX = params.diverging ? left + chartWidth / 2 : left;
@@ -141,7 +142,12 @@ function generateBarSvg(params: {
   rows.forEach((row, i) => {
     const y = top + i * (barH + barGap);
     const normalized = Math.abs(row.value) / maxAbs;
-    const w = Math.max(2, Math.floor(normalized * (params.diverging ? chartWidth / 2 - 14 : chartWidth - 14)));
+    const w = Math.max(
+      2,
+      Math.floor(
+        normalized * (params.diverging ? chartWidth / 2 - 14 : chartWidth - 14),
+      ),
+    );
     const isNegative = row.value < 0;
     const x = params.diverging ? (isNegative ? axisX - w : axisX) : left;
     const fill = params.diverging
@@ -251,12 +257,15 @@ function generateRadarSvg(params: {
   const radius = 210;
   const levels = 5;
 
-  const maxAbs = rows.length > 0 ? Math.max(...rows.map((r) => Math.abs(r.value)), 1) : 1;
+  const maxAbs =
+    rows.length > 0 ? Math.max(...rows.map((r) => Math.abs(r.value)), 1) : 1;
 
   const rings: string[] = [];
   for (let i = 1; i <= levels; i += 1) {
     const r = (radius * i) / levels;
-    rings.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e2e8f0" />`);
+    rings.push(
+      `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e2e8f0" />`,
+    );
   }
 
   const axes: string[] = [];
@@ -264,10 +273,12 @@ function generateRadarSvg(params: {
   const labels: string[] = [];
 
   rows.forEach((row, i) => {
-    const angle = (-Math.PI / 2) + (2 * Math.PI * i) / rows.length;
+    const angle = -Math.PI / 2 + (2 * Math.PI * i) / rows.length;
     const ax = cx + Math.cos(angle) * radius;
     const ay = cy + Math.sin(angle) * radius;
-    axes.push(`<line x1="${cx}" y1="${cy}" x2="${ax}" y2="${ay}" stroke="#cbd5e1" />`);
+    axes.push(
+      `<line x1="${cx}" y1="${cy}" x2="${ax}" y2="${ay}" stroke="#cbd5e1" />`,
+    );
 
     const normalized = Math.abs(row.value) / maxAbs;
     const px = cx + Math.cos(angle) * radius * normalized;
@@ -276,7 +287,9 @@ function generateRadarSvg(params: {
 
     const lx = cx + Math.cos(angle) * (radius + 28);
     const ly = cy + Math.sin(angle) * (radius + 28);
-    labels.push(`<text x="${lx}" y="${ly}" text-anchor="middle" font-size="12" fill="#1f2937">${escapeXml(row.label)}</text>`);
+    labels.push(
+      `<text x="${lx}" y="${ly}" text-anchor="middle" font-size="12" fill="#1f2937">${escapeXml(row.label)}</text>`,
+    );
   });
 
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -451,9 +464,10 @@ function resolveMatrix(params: {
     const colSet = new Set<string>();
     const rowMaps = rowLabels.map((r) => {
       const value = params.matrix?.[r];
-      const record = typeof value === "object" && value !== null
-        ? (value as Record<string, unknown>)
-        : {};
+      const record =
+        typeof value === "object" && value !== null
+          ? (value as Record<string, unknown>)
+          : {};
       Object.keys(record).forEach((k) => colSet.add(k));
       return record;
     });
@@ -461,7 +475,9 @@ function resolveMatrix(params: {
     const values = rowMaps.map((record) =>
       colLabels.map((col) => {
         const value = record[col];
-        return typeof value === "number" && Number.isFinite(value) ? value : NaN;
+        return typeof value === "number" && Number.isFinite(value)
+          ? value
+          : NaN;
       }),
     );
     if (rowLabels.length > 0 && colLabels.length > 0) {
@@ -533,7 +549,11 @@ function buildVisualization(params: {
   }
 
   if (params.type === "ksea-heatmap") {
-    const matrix = resolveMatrix({ matrix: params.matrix, data: params.data, rows });
+    const matrix = resolveMatrix({
+      matrix: params.matrix,
+      data: params.data,
+      rows,
+    });
     const svg = generateGridHeatmapSvg({
       title,
       rowLabels: matrix.rowLabels,
@@ -564,7 +584,9 @@ function buildVisualization(params: {
   }
 
   if (rows.length === 0) {
-    throw new Error("Visualization requires numeric rows in data or named numeric arrays.");
+    throw new Error(
+      "Visualization requires numeric rows in data or named numeric arrays.",
+    );
   }
 
   const isDiverging = params.type === "ksea-bar";
