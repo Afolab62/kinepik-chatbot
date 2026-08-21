@@ -182,14 +182,16 @@ pnpm eval:benchmarks       # Run intent-routing / tool-calling benchmark suite
 
 ---
 
-## Supported Kinase Families
+## KINEPIK API
 
-| Family | Description                                            |
-| ------ | ------------------------------------------------------ |
-| AGC    | PKA, PKG, PKC — basophilic, second-messenger regulated |
-| CAMK   | Calcium/calmodulin-dependent kinases                   |
-| CK1    | Casein kinase 1 — acidophilic, constitutively active   |
-| CMGC   | CDKs, MAPKs, GSKs — proline-directed                   |
-| STE    | MAP kinase cascade components                          |
-| TK     | Tyrosine kinases — receptor and non-receptor           |
-| TKL    | Tyrosine kinase-like serine/threonine kinases          |
+All kinase, KSEA, network, and perturbation data is fetched live from the KINEPIK database at `https://kinepik.org/api/0`. The chat tools in `lib/server/tools/` call the following endpoints:
+
+| Endpoint                    | Used by                                    | Returns                                          |
+| ---------------------------- | ------------------------------------------- | ------------------------------------------------- |
+| `GET /kinases/specific`      | `analyzeKinase`                             | Kinase metadata + target phosphosites by UniProt ID |
+| `GET /perturbation/KSEA`     | `analyzeKinase`, `topAffectedKinases`, `comparePerturbations`, `analyzeCombinationTherapy` | KSEA activity scores for a perturbation/cell line |
+| `GET /perturbation/all`      | `listPerturbations`                         | Catalog of available drugs/inhibitors and gene knockouts |
+| `GET /sif/all`, `/sif/specific` | `getKinaseNetwork`, `getTopKinaseConnectivity` | Kinase-interaction network in SIF (source/interaction/target) format |
+| `GET /sif/attributes`        | `getKinaseNetwork`, `getTopKinaseConnectivity` | Human-readable labels for network node IDs        |
+
+No local kinase database is bundled — results reflect whatever is currently published by the KINEPIK API. Set `KINEPIK_LOG_REQUESTS=true` to log outgoing requests for debugging.
