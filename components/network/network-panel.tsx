@@ -182,6 +182,9 @@ export function NetworkPanel({ networkData, isOpen, onClose }: NetworkPanelProps
           style: { opacity: 0.12 },
         },
       ],
+      // Large graphs make the physics-based "cose" layout very expensive —
+      // drop iteration count sharply above a node threshold so a big/unexpected
+      // graph degrades gracefully instead of freezing the tab.
       layout: {
         name: "cose",
         animate: false,
@@ -190,7 +193,7 @@ export function NetworkPanel({ networkData, isOpen, onClose }: NetworkPanelProps
         idealEdgeLength: () => 80,
         edgeElasticity: () => 100,
         gravity: 80,
-        numIter: 1000,
+        numIter: elements.length > 150 ? 200 : 1000,
         initialTemp: 200,
         coolingFactor: 0.95,
         minTemp: 1.0,

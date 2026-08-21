@@ -24,6 +24,9 @@ import {
 } from "@/lib/server/ops/monitoring";
 
 export const runtime = "nodejs";
+// Bound the whole request lifetime so a runaway tool chain (e.g. a user asking
+// to "show all kinases") fails fast with a clear error instead of hanging.
+export const maxDuration = 60;
 
 const DEMO_MODE = process.env.DEMO_MODE === "true";
 

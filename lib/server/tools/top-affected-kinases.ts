@@ -38,10 +38,13 @@ export function parseKinepikJson(raw: string): unknown {
   }
 }
 
+// Hard ceiling keeps a single batch attempt well under typical serverless
+// function limits, even if KINEPIK is slow — prevents "show all kinases"
+// style requests from hanging the whole chat request for minutes.
 function timeoutForBatchSize(kinaseCount: number, attempt: number): number {
-  const base = 15000 + kinaseCount * 9000;
-  const multiplier = attempt === 1 ? 1 : 1.35;
-  return Math.min(180000, Math.floor(base * multiplier));
+  const base = 8000 + kinaseCount * 3000;
+  const multiplier = attempt === 1 ? 1 : 1.2;
+  return Math.min(30000, Math.floor(base * multiplier));
 }
 
 async function fetchAllKinaseInfo(): Promise<KinaseInfo[]> {
@@ -334,8 +337,13 @@ export const topAffectedKinasesTool = tool({
     const resolvedPerturbation = resolution.resolvedName;
     const kinases = await fetchAllKinaseInfo();
     const kinaseIds = kinases.map((item) => item.uniprotId);
-    const scanIds =
-      typeof maxScan === "number" ? kinaseIds.slice(0, maxScan) : kinaseIds;
+    // Hard cap regardless of requested maxScan — an unbounded scan (e.g. a user
+    // asking to "show all kinases") can fan out into dozens of slow upstream
+    // KSEA requests and hang the whole chat response.
+    const HARD_MAX_SCAN = 30;
+    const requestedScan =
+      typeof maxScan === "number" ? maxScan : kinaseIds.length;
+    const scanIds = kinaseIds.slice(0, Math.min(requestedScan, HARD_MAX_SCAN));
 
     // Smaller batches plus adaptive timeout reduce abort risk on KINEPIK's KSEA endpoint.
     const chunkSize = 8;

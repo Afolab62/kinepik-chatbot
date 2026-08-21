@@ -23,12 +23,28 @@ export const batchRankKinasesTool = tool({
     queries: z
       .array(querySchema)
       .min(1)
-      .max(10)
-      .describe("A set of ranking requests to execute in parallel."),
+      .max(4)
+      .describe("A set of ranking requests to execute (run with limited concurrency)."),
   }),
   execute: async ({ queries }: { queries: z.infer<typeof querySchema>[] }) => {
-    const results = await Promise.all(
-      queries.map(async (query) => {
+    // Run at most 2 full kinase scans at once — each one already fans out into
+    // several KSEA requests, so unbounded parallelism here can overwhelm the
+    // upstream API and stall the whole chat response.
+    const BATCH_CONCURRENCY = 2;
+    const results: Array<{
+      perturbation: string;
+      cellLine: string;
+      topN: number;
+      mode: string;
+      result: unknown;
+    }> = new Array(queries.length);
+
+    let cursor = 0;
+    async function worker() {
+      while (cursor < queries.length) {
+        const index = cursor;
+        cursor += 1;
+        const query = queries[index];
         const executeTool = topAffectedKinasesTool.execute;
         const outcome = executeTool
           ? await executeTool(
@@ -37,7 +53,7 @@ export const batchRankKinasesTool = tool({
                 cellLine: query.cellLine,
                 topN: query.topN,
                 mode: query.mode,
-                concurrency: 3,
+                concurrency: 2,
               },
               {
                 toolCallId: `batch-${query.perturbation}-${query.cellLine}`,
@@ -46,14 +62,20 @@ export const batchRankKinasesTool = tool({
             )
           : null;
 
-        return {
+        results[index] = {
           perturbation: query.perturbation,
           cellLine: query.cellLine,
           topN: query.topN,
           mode: query.mode,
           result: outcome,
         };
-      }),
+      }
+    }
+
+    await Promise.all(
+      Array.from({ length: Math.min(BATCH_CONCURRENCY, queries.length) }, () =>
+        worker(),
+      ),
     );
 
     return {

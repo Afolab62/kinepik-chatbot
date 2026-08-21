@@ -204,7 +204,30 @@ export const getKinaseNetworkTool = tool({
       // Attributes are optional — fall back to raw IDs as labels
     }
 
-    const { nodes, edges } = parseSif(sifText, resolution, idToLabel, new Set(uniprotIds));
+    const { nodes: allNodes, edges: allEdges } = parseSif(
+      sifText,
+      resolution,
+      idToLabel,
+      new Set(uniprotIds),
+    );
+
+    // Cap the graph handed to the client — very dense phosphosite networks can
+    // reach thousands of nodes/edges, which freezes the Cytoscape cose layout
+    // in the browser. Truncate and tell the model/user rather than crashing.
+    const MAX_NODES = 250;
+    const MAX_EDGES = 500;
+    const truncated = allNodes.length > MAX_NODES || allEdges.length > MAX_EDGES;
+    const nodes = allNodes.slice(0, MAX_NODES);
+    const keptIds = new Set(nodes.map((n) => n.id));
+    const edges = allEdges
+      .filter((e) => keptIds.has(e.source) && keptIds.has(e.target))
+      .slice(0, MAX_EDGES);
+
+    if (truncated) {
+      errors.push(
+        `Network truncated to ${nodes.length} nodes / ${edges.length} edges (full result had ${allNodes.length} nodes / ${allEdges.length} edges) to keep the visualisation responsive. Narrow the kinase set or use resolution='kinases' for a smaller graph.`,
+      );
+    }
 
     const networkTitle =
       title ??
